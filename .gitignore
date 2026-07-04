@@ -45,6 +45,9 @@ __pycache__/
 .venv/
 venv/
 
+# Claude Code local settings
+.claude/settings.local.json
+
 # Editors / OS
 .vscode/
 .idea/
