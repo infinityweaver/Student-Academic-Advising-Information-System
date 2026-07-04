@@ -2,10 +2,9 @@
 {% block title %}Import scrape{% endblock %}
 {% block content %}
 <h1>Import a registrar scrape</h1>
-<p class="muted">Upload or paste one student's scrape JSON. The file is saved to
-<code>raw/&lt;student-no&gt;.json</code> (previous version backed up), then the student's MD —
-checklist, flags, header, grade history — is regenerated with advising notes preserved,
-and ROSTER.md is resynced.</p>
+<p class="muted">Upload or paste one student's scrape JSON. An audit copy is saved to
+<code>raw/&lt;student-no&gt;.json</code> (previous version backed up), then the grade entries are
+merged into the student's <code>record.json</code> and ROSTER.md is resynced.</p>
 
 <form method="post" enctype="multipart/form-data" class="box">
   <p><input type="file" name="file" accept=".json"></p>

@@ -24,22 +24,23 @@ Markdown file per student.
 
 ## How it works
 
-**The files are the database.** Each advisee has a hand-maintainable Markdown file;
-registrar grade scrapes live as JSON; the curriculum checklists are read-only Excel
-workbooks. The web system (SAAIS) is a *view and editor* over those files — every
-action in the browser writes back to them, so they stay readable and editable by hand
-even if the system is never opened again.
+**Local JSON records are the database** (since v2). Each advisee has a
+`record.json` in their own folder holding the profile, grade entries, advising
+notes and attachment metadata; registrar grade scrapes are kept in `raw/` as
+audit copies and merge into the record on import. The schemas are documented in
+[docs/SAAIS-V2-SCHEMAS.md](docs/SAAIS-V2-SCHEMAS.md). Coming from v1
+(MD-as-database)? Run the one-time migration: `python -m saais.migrate`.
 
 Every write is **reversible**: the previous version of any mutated file is copied to
 `.backups/<timestamp>/` first, and writes are rejected with a *"file changed, reload"*
 prompt if the file was hand-edited while the page was open.
 
-**Round-trip safety.** A student MD file is an ordered list of `##` sections. SAAIS
-regenerates the **computed** sections (header table, Flags, Currently enrolled,
-Curriculum checklist, Grade history) wholesale from the raw grade data, and preserves
-the **Advising notes** section and any sections you add by hand **byte-for-byte**.
-Derived numbers (units earned, GWA, year level, flags) are always recomputed, never
-stored as truth.
+**Markdown is now an export format.** The per-student advising MD files are
+generated on demand from the records (Roster → select students → *Export MD*,
+as a ZIP download or into a folder of your choice) — they are never parsed
+back. Derived numbers (units earned, GWA, year level, flags) are always
+recomputed, never stored as truth; year level is autocomputed from units
+earned with thresholds configurable in `saais.toml` (`[year_level]`).
 
 ## Repository layout
 
@@ -52,17 +53,18 @@ academic advising/
 ├── saais/                     ← the web system
 │   ├── __main__.py            ← `python -m saais` entry point
 │   ├── app.py                 ← Flask routes
-│   ├── service.py             ← write-back operations (backup → write → regenerate)
-│   ├── config.py / saais.toml ← rules & term configuration
-│   ├── repo/                  ← file I/O: MD round-trip parser, curriculum (xlsx),
+│   ├── service.py             ← write-back operations (backup → write record.json)
+│   ├── migrate.py             ← one-time v1 (MD) → v2 (JSON records) migration
+│   ├── config.py / saais.toml ← rules, term & year-level configuration
+│   ├── repo/                  ← file I/O: records (JSON), curriculum (xlsx),
 │   │                             scrapes (JSON), timestamped backups
 │   ├── domain/                ← rules.py (grades/GWA/flags), advising.py (prereqs)
 │   ├── index/                 ← in-memory index, rebuilt from file mtimes
-│   ├── render/                ← student MD + ROSTER.md generators
+│   ├── render/                ← student MD export + ROSTER.md generators
 │   └── templates/, static/    ← Jinja pages, one CSS file, vendored htmx
 ├── students/
-│   ├── active/                ← one folder per advisee (gitignored): advising .md
-│   │                             + checklist .xlsx with contact info
+│   ├── active/                ← one folder per advisee (gitignored): record.json
+│   │                             + legacy checklist .xlsx + attachments
 │   ├── graduated/<year>/      ← archived advisees (gitignored)
 │   └── inactive/              ← shifters / AWOL / LOA (gitignored)
 ├── raw/                       ← registrar grade scrapes, <student-no>.json (gitignored)
@@ -72,9 +74,7 @@ academic advising/
 │   └── rosters/               ← official advisee lists, recent semesters (gitignored)
 ├── archive/                   ← obsolete records kept for reference: expired calendars,
 │                                 old rosters, superseded monitoring sheets (gitignored)
-├── tools/                     ← generate_student_md.py — legacy one-shot generator,
-│                                 superseded by SAAIS (re-running it OVERWRITES notes!)
-└── docs/                      ← SAAIS plan and implementation notes
+└── docs/                      ← SAAIS plan, implementation notes, v2 data schemas
 ```
 
 ## Installation
@@ -116,7 +116,7 @@ your own.
 | **Flags** | Every 🔴/🟡 item across advisees, grouped: INCs, retakes, delinquency, stop-outs |
 | **Student page** | Profile, flags, curriculum checklist, grade history by term, advising notes |
 | **Import scrape** | Drop/paste a fresh registrar JSON for an existing advisee |
-| **New advisee** | Scaffold the folder + MD file for a new advisee from their grade JSON |
+| **New advisee** | Scaffold the folder + `record.json` for a new advisee from their grade JSON |
 
 ### During an advising session
 
@@ -127,12 +127,12 @@ your own.
    above the regular load), then **Generate advising slip** and print it for signing.
    The advised courses are recorded as a dated advising note automatically.
 3. Add any extra **advising notes** (commitments, concerns) from the notes form —
-   they are appended to the student's MD file, newest on top.
+   they are stored in the student's record, newest on top.
 
 ### At the end of a term (grades released)
 
-1. **Import scrape** for each advisee with a fresh registrar JSON — grades are merged
-   and the checklist, flags, header, and `ROSTER.md` regenerate automatically.
+1. **Import scrape** for each advisee with a fresh registrar JSON — grade entries
+   merge into the record; checklist, flags and `ROSTER.md` recompute automatically.
 2. No scrape available? Use **🖊 Encode grades** on the student page to type final
    grades and INC completions for the in-progress courses.
 3. When moving to a new term, update `[term]` in
@@ -148,11 +148,11 @@ your own.
 
 ### Editing files by hand
 
-Still fully supported — the MD files remain plain Markdown. SAAIS picks up hand
-edits on the next page load, and its writes never touch the *Advising notes* section
-or any section you add yourself.
+Still supported — `record.json` is plain, indented JSON. SAAIS picks up hand
+edits on the next page load, refuses stale browser writes over them, and backs
+up the previous version before every write of its own.
 
-## Each student file contains
+## Each student record (and its MD export) contains
 
 1. **Header** — student no., curriculum, contact, units earned, year level (by unit thresholds), GWA, status.
 2. **Flags** — retakes needed, outstanding INCs, delinquency-rule hits, enrollment gaps.
@@ -169,7 +169,8 @@ Configurable in [saais/saais.toml](saais/saais.toml):
 - Delinquency **flag**: failed ≥ 25% of enrolled units in a term. This is an advising
   heads-up only — there is currently **no active student-retention policy** attached
   to it.
-- Year level by units earned — thresholds come from each curriculum workbook.
+- Year level by units earned — thresholds come from each curriculum workbook, or
+  set your own in `saais.toml` (`[year_level] thresholds`).
 - Status: 🟢 on track (no flags) · 🟡 watch (INCs / a retake pending) · 🔴 needs attention (recent delinquency, ≥3 retakes, or no current enrollment).
 
 ## Reusing this for your own advisees

@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 """Flask routes for SAAIS. Local single-user app — binds to 127.0.0.1 only."""
+import io
 import re
 from datetime import date, datetime
 
-from flask import (Flask, abort, flash, redirect, render_template, request, url_for)
+from flask import (Flask, abort, flash, redirect, render_template, request,
+                   send_file, url_for)
 from markupsafe import Markup, escape
 
 from . import config as config_mod
 from . import service
 from .domain import advising, rules
 from .index.store import Store
-from .repo import curriculum, scrape
+from .repo import curriculum, records, scrape
 
 
 def mini_md(text):
@@ -129,7 +131,7 @@ def create_app():
         st = get_student_or_404(sid)
         try:
             service.add_note(store, st, request.form["note"],
-                             expected_hash=request.form.get("md_hash"),
+                             expected_hash=request.form.get("rec_hash"),
                              when=request.form.get("date") or None)
             flash("Note added.")
         except (service.Conflict, ValueError) as e:
@@ -143,8 +145,8 @@ def create_app():
             service.edit_profile(store, st, request.form.get("email", ""),
                                  request.form.get("contact", ""),
                                  request.form.get("curriculum") or None,
-                                 expected_hash=request.form.get("md_hash"))
-            flash("Profile updated; computed sections regenerated.")
+                                 expected_hash=request.form.get("rec_hash"))
+            flash("Profile updated.")
         except (service.Conflict, ValueError) as e:
             flash(f"⚠ {e}")
         return redirect(url_for("student", sid=sid))
@@ -153,7 +155,7 @@ def create_app():
     def encode_grades(sid):
         st = get_student_or_404(sid)
         if not st.an:
-            flash("⚠ No raw grade data — import a scrape first.")
+            flash("⚠ No grade entries — import a scrape first.")
             return redirect(url_for("student", sid=sid))
         if request.method == "POST":
             form = request.form
@@ -169,16 +171,16 @@ def create_app():
                 })
             try:
                 n = service.encode_grades(store, st, updates,
-                                          expected_hash=form.get("md_hash"))
-                flash(f"{n} record(s) updated; MD regenerated." if n else "No changes.")
+                                          expected_hash=form.get("rec_hash"))
+                flash(f"{n} record(s) updated." if n else "No changes.")
                 return redirect(url_for("student", sid=sid))
-            except (service.Conflict, ValueError, scrape.ScrapeError) as e:
+            except (service.Conflict, ValueError, records.RecordError) as e:
                 flash(f"⚠ {e}")
         # rows to offer: current-term in-progress + outstanding INCs
         cur_term = (cfg["term"]["current_ay"], cfg["term"]["current_sem"])
         rows = [g for g in st.an["in_progress"]]
         inc_codes = {(c, ay, sem) for c, ay, sem, _ in st.an["incs"]}
-        for g in st.raw["grades"]:
+        for g in st.record["grades"]:
             if (g["course_code"], g["academic_year"], g["semester"]) in inc_codes:
                 rows.append(g)
         return render_template("grades.html", st=st, rows=rows, cur_term=cur_term)
@@ -187,7 +189,7 @@ def create_app():
     def advise(sid):
         st = get_student_or_404(sid)
         if not st.an:
-            flash("⚠ No raw grade data — import a scrape first.")
+            flash("⚠ No grade entries — import a scrape first.")
             return redirect(url_for("student", sid=sid))
         options = advising.can_enroll(st.an)
         if request.method == "POST":
@@ -225,11 +227,11 @@ def create_app():
             if f and f.filename:
                 text = f.read().decode("utf-8")
             try:
-                sid, folder = service.import_scrape(store, text)
-                if folder:
-                    flash(f"Imported scrape for {sid}; regenerated {folder}.")
+                sid, st = service.import_scrape(store, text)
+                if st:
+                    flash(f"Imported scrape for {sid}; merged into {st.folder}'s record.")
                     return redirect(url_for("student", sid=sid))
-                flash(f"Imported raw/{sid}.json, but no matching active advisee — "
+                flash(f"Imported raw/{sid}.json, but no matching advisee record — "
                       f"use New advisee to scaffold a folder.")
                 return redirect(url_for("intake"))
             except (scrape.ScrapeError, ValueError) as e:
@@ -250,6 +252,22 @@ def create_app():
             except (scrape.ScrapeError, ValueError) as e:
                 flash(f"⚠ {e}")
         return render_template("intake.html")
+
+    @app.post("/export-md")
+    def export_md():
+        sids = request.form.getlist("sids")
+        try:
+            zip_bytes, names = service.export_md(store, sids,
+                                                 out_dir=request.form.get("out_dir") or None)
+        except (ValueError, records.RecordError) as e:
+            flash(f"⚠ {e}")
+            return redirect(url_for("roster"))
+        if request.form.get("out_dir"):
+            flash(f"Wrote {len(names)} MD file(s) to {request.form['out_dir']}.")
+            return redirect(url_for("roster"))
+        return send_file(io.BytesIO(zip_bytes), mimetype="application/zip",
+                         as_attachment=True,
+                         download_name=f"saais-md-export-{date.today().isoformat()}.zip")
 
     @app.post("/sync-roster")
     def sync_roster():

@@ -90,6 +90,21 @@ def year_level(units, thresholds):
     return label
 
 
+def parse_thresholds(spec):
+    """'0=1st year;36=2nd year' -> [(0.0, '1st year'), (36.0, '2nd year')].
+    Empty/invalid spec -> [] (caller falls back to curriculum thresholds)."""
+    out = []
+    for part in (spec or "").split(";"):
+        if "=" not in part:
+            continue
+        units, _, label = part.partition("=")
+        try:
+            out.append((float(units.strip()), label.strip()))
+        except ValueError:
+            return []
+    return sorted(out)
+
+
 def detect_curriculum(grades):
     return "2025" if any(norm_code(g["course_code"]).startswith("CSIT") for g in grades) else "2018"
 
@@ -236,13 +251,15 @@ def analyze(data, curriculum, config, curkey=None):
     grad_units = cur["thresholds"][-1][0]
     remaining = [item for item in checklist
                  if base_code(item["row"]["code"]) not in passed_codes]
+    yl_thresholds = (parse_thresholds(config.get("year_level", {}).get("thresholds", ""))
+                     or cur["thresholds"])
 
     return {
         "curkey": curkey, "cur": cur, "checklist": checklist, "extra": extra,
         "attempts": attempts, "passed": passed_codes, "units": units_earned,
         "gwa": gwa, "flags": flags, "per_term": per_term, "status": status,
         "last_term": last_term, "in_progress": in_progress, "incs": incs,
-        "year_level": year_level(units_earned, cur["thresholds"]),
+        "year_level": year_level(units_earned, yl_thresholds),
         "grad_units": grad_units, "remaining": remaining,
         "delinquent_terms": delinquent_terms, "latest_term": latest_term,
     }

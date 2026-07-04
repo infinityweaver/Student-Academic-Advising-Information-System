@@ -25,8 +25,8 @@ LEGEND = ("\nStatus legend: 🟢 on track (no flags) · 🟡 watch (INCs / a ret
 
 
 def _link(st):
-    rel = os.path.relpath(st.md_path, paths.ROOT).replace(os.sep, "/")
-    return "(" + urllib.parse.quote(rel) + ")"
+    rel = os.path.relpath(st.folder_path, paths.ROOT).replace(os.sep, "/")
+    return "(" + urllib.parse.quote(rel) + "/)"
 
 
 def render_table(students):
@@ -42,7 +42,7 @@ def render_table(students):
             L.append(f"| [{name}]{_link(st)} | {st.sid} | {an['curkey']} | {an['year_level']} |"
                      f" {an['units']:g} | {gwa} | {st.status} | {len(an['flags'])} |")
         else:
-            L.append(f"| [{name}]{_link(st) if st.md_path else ''} | {st.sid or '—'} | — | — | — | — |"
+            L.append(f"| [{name}]{_link(st)} | {st.sid or '—'} | — | — | — | — |"
                      f" {st.status} | — |")
     return "\n".join(L) + LEGEND
 
