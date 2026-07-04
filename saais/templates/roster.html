@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Roster{% endblock %}
+{% block content %}
+<h1>Roster</h1>
+
+<form class="filters" method="get">
+  <label>Status
+    <select name="status">
+      <option value="">all</option>
+      {% for s in ["🔴", "🟡", "🟢"] %}<option value="{{ s }}" {{ "selected" if f_status == s }}>{{ s }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Curriculum
+    <select name="cur">
+      <option value="">all</option>
+      <option value="2018" {{ "selected" if f_cur == "2018" }}>2018–2024</option>
+      <option value="2025" {{ "selected" if f_cur == "2025" }}>2025–present</option>
+    </select>
+  </label>
+  <label>Year level
+    <select name="year">
+      <option value="">all</option>
+      {% for y in years %}<option value="{{ y }}" {{ "selected" if f_year == y }}>{{ y }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Sort
+    <select name="sort">
+      {% for s in ["name", "status", "gwa", "units", "flags"] %}<option value="{{ s }}" {{ "selected" if sort == s }}>{{ s }}</option>{% endfor %}
+    </select>
+  </label>
+  <button>Apply</button>
+</form>
+
+<table>
+  <tr><th>Student</th><th>ID</th><th>Curriculum</th><th>Year level</th><th>Units</th><th>GWA</th><th>Status</th><th>Flags</th></tr>
+  {% for st in rows %}
+  <tr>
+    <td>{% if st.sid %}<a href="{{ url_for('student', sid=st.sid) }}">{{ st.name }}</a>{% else %}{{ st.name }}{% endif %}</td>
+    <td>{{ st.sid or "—" }}</td>
+    {% if st.an %}
+    <td>{{ st.an.curkey }}</td>
+    <td>{{ st.an.year_level }}</td>
+    <td>{{ "%g"|format(st.an.units) }} / {{ "%g"|format(st.an.grad_units) }}</td>
+    <td>{{ "%.2f"|format(st.an.gwa) if st.an.gwa else "—" }}</td>
+    <td>{{ st.status }}</td>
+    <td>{{ st.an.flags|length }}</td>
+    {% else %}
+    <td colspan="5" class="muted">no raw grade data{% if st.error %} — {{ st.error }}{% endif %}</td>
+    <td>—</td>
+    {% endif %}
+  </tr>
+  {% endfor %}
+</table>
+<p class="muted">{{ rows|length }} shown.</p>
+{% endblock %}

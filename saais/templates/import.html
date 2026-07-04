@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Import scrape{% endblock %}
+{% block content %}
+<h1>Import a registrar scrape</h1>
+<p class="muted">Upload or paste one student's scrape JSON. The file is saved to
+<code>raw/&lt;student-no&gt;.json</code> (previous version backed up), then the student's MD —
+checklist, flags, header, grade history — is regenerated with advising notes preserved,
+and ROSTER.md is resynced.</p>
+
+<form method="post" enctype="multipart/form-data" class="box">
+  <p><input type="file" name="file" accept=".json"></p>
+  <p class="muted">…or paste JSON:</p>
+  <p><textarea name="json" rows="12" placeholder='{"student": {...}, "grades": [...]}'></textarea></p>
+  <button>Import</button>
+</form>
+
+{% if unmatched %}
+<h2>Raw files without an active advisee folder</h2>
+<p class="muted">Usually graduated/removed students; use <a href="{{ url_for('intake') }}">New advisee</a> if one should be active.</p>
+<ul>{% for sid in unmatched %}<li><code>raw/{{ sid }}.json</code></li>{% endfor %}</ul>
+{% endif %}
+{% endblock %}

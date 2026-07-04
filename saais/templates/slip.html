@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Advising slip · {{ st.name }}{% endblock %}
+{% block content %}
+<div class="no-print" style="margin-bottom:1rem">
+  <button onclick="window.print()">🖨 Print</button>
+  <a href="{{ url_for('advise', sid=st.sid) }}"><button class="secondary">Back to advising</button></a>
+</div>
+
+<h1 style="text-align:center">Academic Advising Slip</h1>
+<p style="text-align:center" class="muted">Visayas State University · College of Engineering and Technology · BSCS</p>
+
+<table style="max-width:640px; margin:0 auto 1rem">
+  <tr><th>Student</th><td>{{ st.name }}</td><th>Student No.</th><td>{{ st.sid }}</td></tr>
+  <tr><th>Year level</th><td>{{ st.an.year_level }}</td><th>Units earned</th><td>{{ "%g"|format(st.an.units) }} / {{ "%g"|format(st.an.grad_units) }}</td></tr>
+  <tr><th>Term</th><td>{{ term or "____________________" }}</td><th>Date</th><td>{{ today() }}</td></tr>
+</table>
+
+<h2>Advised courses</h2>
+{% if chosen %}
+<table>
+  <tr><th>Course</th><th>Title</th><th>Units</th><th>Prerequisite</th></tr>
+  {% for o in chosen %}
+  <tr><td>{{ o.row.code }}</td><td>{{ o.row.title }}</td><td>{{ "%g"|format(o.row.units) }}</td><td>{{ o.row.prereq }}</td></tr>
+  {% endfor %}
+  <tr><th colspan="2">Total units</th><th colspan="2">{{ "%g"|format(total_units) }}{% if total_units > max_units %} ⚠ above regular load ({{ max_units }}){% endif %}</th></tr>
+</table>
+{% else %}<p class="muted">No courses selected.</p>{% endif %}
+
+<div style="display:flex; gap:4rem; margin-top:3.5rem; max-width:640px">
+  <div style="flex:1; text-align:center; border-top:1px solid #333; padding-top:.3rem">Student's signature</div>
+  <div style="flex:1; text-align:center; border-top:1px solid #333; padding-top:.3rem">Adviser's signature</div>
+</div>
+{% endblock %}

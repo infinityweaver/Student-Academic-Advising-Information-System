@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<h1>Advising dashboard</h1>
+
+<div class="cards">
+  <div class="card"><div class="big">{{ students|length }}</div><div class="lbl">Active advisees</div></div>
+  <div class="card"><div class="big danger">{{ counts["🔴"] }}</div><div class="lbl">🔴 Needs attention</div></div>
+  <div class="card"><div class="big warn">{{ counts["🟡"] }}</div><div class="lbl">🟡 Watch</div></div>
+  <div class="card"><div class="big ok">{{ counts["🟢"] }}</div><div class="lbl">🟢 On track</div></div>
+</div>
+
+<h2>⏳ INC deadlines (1-year lapse rule)</h2>
+{% if incs %}
+<table>
+  <tr><th>Student</th><th>Course</th><th>INC from</th><th>Deadline (approx.)</th><th>Days left</th></tr>
+  {% for r in incs %}
+  <tr>
+    <td><a href="{{ url_for('student', sid=r.st.sid) }}">{{ r.st.name }}</a></td>
+    <td>{{ r.code }}</td>
+    <td>{{ r.term }}</td>
+    <td>{{ r.deadline }}</td>
+    <td>{% if r.days is not none %}{% if r.days < 0 %}<span class="danger">lapsed {{ -r.days }} d ago — grade becomes 5.00</span>
+        {% elif r.days < 90 %}<span class="warn">{{ r.days }}</span>{% else %}{{ r.days }}{% endif %}{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+<p class="muted">Deadlines are approximated from term end dates; confirm against the registrar's completion deadline.</p>
+{% else %}<p class="muted">No outstanding INCs. 🎉</p>{% endif %}
+
+<h2>🚪 Possible stop-outs</h2>
+{% if stopouts %}
+<ul>
+  {% for st in stopouts %}
+  <li><a href="{{ url_for('student', sid=st.sid) }}">{{ st.name }}</a>
+      <span class="muted">— last records: {{ short_term(*st.an.last_term) }}</span></li>
+  {% endfor %}
+</ul>
+{% else %}<p class="muted">Everyone has records in the current term.</p>{% endif %}
+
+<h2>Maintenance</h2>
+<div class="box">
+  <form class="inline" method="post" action="{{ url_for('sync_roster') }}">
+    <button class="secondary">Rewrite ROSTER.md</button>
+  </form>
+  <span class="muted">Roster is also resynced automatically after every write.</span>
+</div>
+{% endblock %}

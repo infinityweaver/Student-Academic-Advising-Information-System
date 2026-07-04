@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Flags{% endblock %}
+{% block content %}
+<h1>Flags board</h1>
+{% set titles = {"STOPOUT": "🚪 Stop-outs / no current enrollment",
+                 "DELINQ": "📉 Delinquency (failed ≥25% of term units)",
+                 "INC": "⏳ Outstanding INCs",
+                 "RETAKE": "❌ Retakes required"} %}
+{% for kind, items in groups.items() %}
+<h2>{{ titles.get(kind, kind) }} <span class="pill">{{ items|length }}</span></h2>
+{% if items %}
+<ul class="flags">
+  {% for st, txt in items %}
+  <li><a href="{{ url_for('student', sid=st.sid) }}">{{ st.name }}</a> — {{ txt|mini_md }}</li>
+  {% endfor %}
+</ul>
+{% else %}<p class="muted">None.</p>{% endif %}
+{% endfor %}
+{% endblock %}

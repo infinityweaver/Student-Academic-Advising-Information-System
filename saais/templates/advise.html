@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Advising · {{ st.name }}{% endblock %}
+{% block content %}
+<h1>Enrollment advising — {{ st.name }}</h1>
+<p class="muted">{{ st.an.year_level }} · {{ "%g"|format(st.an.units) }}/{{ "%g"|format(st.an.grad_units) }} units ·
+Eligibility is computed from passed prerequisites; tick <em>Will enroll</em> and generate the advising slip.</p>
+
+<form method="post">
+  <p><label>Term to advise for:
+    <input type="text" name="term" value="{{ cfg.term.current_sem == 'Second Semester' and 'First Semester ' or 'Second Semester ' }}" size="30" placeholder="e.g. First Semester 2026-2027"></label></p>
+  <table>
+    <tr><th>Will enroll</th><th>Course</th><th>Title</th><th>Units</th><th>Prerequisite</th><th>Eligibility</th></tr>
+    {% for o in options %}
+    <tr>
+      <td style="text-align:center">
+        <input type="checkbox" name="enroll" value="{{ o.row.code }}" data-units="{{ o.row.units }}"
+               {% if not o.eligible or o.in_progress %}{% endif %}>
+      </td>
+      <td>{{ o.row.code }}</td>
+      <td>{{ o.row.title }}</td>
+      <td>{{ "%g"|format(o.row.units) }}</td>
+      <td>{{ o.row.prereq }}</td>
+      <td>
+        {% if o.in_progress %}<span class="warn">✳️ currently in progress</span>
+        {% elif o.eligible and o.manual %}<span class="warn">verify: {{ o.manual|join(", ") }}</span>
+        {% elif o.eligible and o.attempted %}<span class="ok">✔ can enroll (retake)</span>
+        {% elif o.eligible %}<span class="ok">✔ can enroll</span>
+        {% else %}<span class="danger">✘ missing: {{ o.missing|join(", ") }}</span>{% endif %}
+        {% if not o.eligible and o.manual %}<span class="warn"> + verify: {{ o.manual|join(", ") }}</span>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p>Selected units: <strong id="unitsum">0</strong> <span class="muted">(warn above {{ max_units }})</span></p>
+  <p><label><input type="checkbox" name="save_note" value="1" checked> Also record an advising note in the MD file</label></p>
+  <p><button>Generate advising slip</button>
+     <a href="{{ url_for('student', sid=st.sid) }}"><button type="button" class="secondary">Back</button></a></p>
+</form>
+<script>
+document.addEventListener("change", function () {
+  var sum = 0;
+  document.querySelectorAll("input[name=enroll]:checked").forEach(function (c) { sum += parseFloat(c.dataset.units); });
+  var el = document.getElementById("unitsum");
+  el.textContent = sum;
+  el.style.color = sum > {{ max_units }} ? "#b91c1c" : "";
+});
+</script>
+{% endblock %}

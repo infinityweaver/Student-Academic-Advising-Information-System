@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}SAAIS{% endblock %} · SAAIS</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<script src="{{ url_for('static', filename='htmx.min.js') }}" defer></script>
+</head>
+<body hx-boost="true">
+<header class="topbar no-print">
+  <a class="brand" href="{{ url_for('home') }}">🎓 SAAIS</a>
+  <nav>
+    <a href="{{ url_for('home') }}">Home</a>
+    <a href="{{ url_for('roster') }}">Roster</a>
+    <a href="{{ url_for('flags_board') }}">Flags</a>
+    <a href="{{ url_for('import_scrape') }}">Import scrape</a>
+    <a href="{{ url_for('intake') }}">New advisee</a>
+  </nav>
+  <span class="term">Current term: {{ cfg.term.current_sem }} {{ cfg.term.current_ay }}</span>
+</header>
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <div class="flashes no-print">
+      {% for m in messages %}<div class="flash">{{ m }}</div>{% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+<main>
+{% block content %}{% endblock %}
+</main>
+<footer class="no-print">
+  <small>SAAIS — files are the database; every write is backed up to <code>.backups/</code>.
+  Local use only (127.0.0.1).</small>
+</footer>
+</body>
+</html>

@@ -1,0 +1,18 @@
+# SAAIS configuration — edit and restart the server (or it reloads per request).
+
+[term]
+# The most recent term that grade scrapes cover. Drives the "currently
+# enrolled" section, stop-out detection, and the grade-encoding form.
+current_ay = "2025-2026"
+current_sem = "Second Semester"
+
+[rules]
+pass_threshold = 3.0          # numeric grades <= this pass
+delinquency_ratio = 0.25      # failed >= this fraction of term units => delinquent
+inc_years = 1                 # INC lapses to 5.00 after this many years
+retakes_needing_attention = 3 # this many retakes => red status
+max_units_regular = 24        # unit-load warning threshold in the advising assistant
+
+[server]
+host = "127.0.0.1"            # local only; do not expose — the data is PII
+port = 8000

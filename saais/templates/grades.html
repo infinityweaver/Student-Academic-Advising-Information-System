@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Encode grades · {{ st.name }}{% endblock %}
+{% block content %}
+<h1>Encode grades — {{ st.name }}</h1>
+<p class="muted">For when a full scrape isn't available: enter final grades for in-progress courses,
+INC completions, or add a course record. Writes to <code>raw/{{ st.sid }}.json</code>, then regenerates the MD.</p>
+
+<form method="post">
+  <input type="hidden" name="md_hash" value="{{ st.md_hash }}">
+  <table>
+    <tr><th>AY</th><th>Semester</th><th>Course</th><th>Title</th><th>Units</th><th>Midterm</th><th>Final grade</th><th>Completion</th></tr>
+    {% for g in rows %}
+    <tr>
+      <td><input type="hidden" name="ay{{ loop.index0 }}" value="{{ g.academic_year }}">{{ g.academic_year }}</td>
+      <td><input type="hidden" name="sem{{ loop.index0 }}" value="{{ g.semester }}">{{ g.semester }}</td>
+      <td><input type="hidden" name="code{{ loop.index0 }}" value="{{ g.course_code }}">{{ g.course_code }}</td>
+      <td><input type="hidden" name="title{{ loop.index0 }}" value="{{ g.course_title }}">{{ g.course_title.title() }}</td>
+      <td><input type="hidden" name="units{{ loop.index0 }}" value="{{ g.units }}">{{ "%g"|format(g.units) }}</td>
+      <td><input type="text" name="mid{{ loop.index0 }}" value="{{ g.midterm or '' }}" size="5"></td>
+      <td><input type="text" name="grade{{ loop.index0 }}" value="{{ g.grade or '' }}" size="5"
+                 placeholder="1.00–5.00 / INC / DR / S"></td>
+      <td><input type="text" name="comp{{ loop.index0 }}" value="{{ g.completion or '' }}" size="5"
+                 {% if g.grade != "INC" %}placeholder="—"{% else %}placeholder="e.g. 2.50"{% endif %}></td>
+    </tr>
+    {% endfor %}
+    {% set n = rows|length %}
+    <tr>
+      <td><input type="text" name="ay{{ n }}" value="{{ cur_term[0] }}" size="9"></td>
+      <td><select name="sem{{ n }}">
+        {% for s in ["First Semester", "Second Semester", "Summer"] %}
+        <option {{ "selected" if s == cur_term[1] }}>{{ s }}</option>{% endfor %}
+      </select></td>
+      <td><input type="text" name="code{{ n }}" size="9" placeholder="new course"></td>
+      <td><input type="text" name="title{{ n }}" size="24"></td>
+      <td><input type="text" name="units{{ n }}" size="3"></td>
+      <td><input type="text" name="mid{{ n }}" size="5"></td>
+      <td><input type="text" name="grade{{ n }}" size="5"></td>
+      <td><input type="text" name="comp{{ n }}" size="5"></td>
+    </tr>
+  </table>
+  <input type="hidden" name="nrows" value="{{ n + 1 }}">
+  <p><button>Save grades & regenerate MD</button>
+     <a href="{{ url_for('student', sid=st.sid) }}"><button type="button" class="secondary">Cancel</button></a></p>
+</form>
+<p class="muted">Grading: 1.00 best – 3.00 lowest pass · 5.00 fail · INC (fill Completion when resolved) · DR dropped · S satisfactory. Leave Final blank to keep a course in progress.</p>
+{% endblock %}

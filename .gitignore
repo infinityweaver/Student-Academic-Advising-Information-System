@@ -1,0 +1,53 @@
+# ============================================================
+# Confidential / PII — never publish student records
+# ============================================================
+
+# Per-student folders (advising MDs, checklist workbooks, contact info)
+students/active/*
+!students/active/.gitkeep
+students/graduated/*
+!students/graduated/.gitkeep
+students/inactive/*
+!students/inactive/.gitkeep
+
+# Registrar grade scrapes (names, student numbers, grades)
+raw/*
+!raw/.gitkeep
+
+# Official advisee rosters per semester (student names)
+reference/rosters/*
+!reference/rosters/.gitkeep
+
+# Misc records with grades / personal data
+reference/misc/*
+!reference/misc/.gitkeep
+
+# Derived data that contains student PII
+tools/roster.json
+ROSTER.md
+
+# ============================================================
+# System artifacts (disposable / machine-local)
+# ============================================================
+
+# SAAIS index cache — rebuilt from files at startup
+*.sqlite3
+*.db
+saais.db
+
+# Timestamped file backups (used when git backups are disabled)
+.backups/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+~$*.xlsx

@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}{{ st.name }}{% endblock %}
+{% block content %}
+<h1>{{ st.name }} <span class="pill">{{ st.status }}</span></h1>
+<p class="muted">
+  <code>{{ st.md_path and st.md_path.replace("\\", "/").split("/students/")[-1] and "students/" + st.md_path.replace("\\", "/").split("/students/")[-1] }}</code>
+  {% if st.raw_path %} · <code>raw/{{ st.sid }}.json</code>{% endif %}
+</p>
+
+<div class="no-print" style="margin:.6rem 0 1rem; display:flex; gap:.6rem; flex-wrap:wrap;">
+  {% if st.an %}
+  <a href="{{ url_for('advise', sid=st.sid) }}"><button>📝 Enrollment advising</button></a>
+  <a href="{{ url_for('encode_grades', sid=st.sid) }}"><button class="secondary">🖊 Encode grades</button></a>
+  {% endif %}
+  <form class="inline" method="post" action="{{ url_for('graduate', sid=st.sid) }}"
+        onsubmit="return confirm('Move {{ st.name }} to students/graduated/' + this.year.value + '/?');">
+    <input type="text" name="year" size="5" value="{{ today()[:4] }}" title="Graduation year">
+    <button class="secondary">🎓 Mark graduated</button>
+  </form>
+</div>
+
+<div class="grid2">
+  <div class="box">
+    <h3 style="margin-top:0">Profile</h3>
+    <table>
+      {% for k, v in st.fields.items() %}<tr><th style="width:40%">{{ k }}</th><td>{{ v }}</td></tr>{% endfor %}
+    </table>
+  </div>
+  <div class="box no-print">
+    <h3 style="margin-top:0">Edit profile</h3>
+    <form method="post" action="{{ url_for('edit_profile', sid=st.sid) }}">
+      <input type="hidden" name="md_hash" value="{{ st.md_hash }}">
+      <p><label>Email<br><input type="text" name="email" value="{{ st.fields.get('Email', '') }}" style="width:100%"></label></p>
+      <p><label>Contact<br><input type="text" name="contact" value="{{ st.fields.get('Contact', '') }}" style="width:100%"></label></p>
+      <p><label>Curriculum<br>
+        <select name="curriculum">
+          {% for key, label in cur_labels.items() %}
+          <option value="{{ key }}" {{ "selected" if st.an and st.an.curkey == key }}>{{ label }}</option>
+          {% endfor %}
+        </select></label>
+        <span class="muted">(explicit per-student field — e.g. shifters on the new curriculum)</span></p>
+      <button>Save & regenerate</button>
+      <p class="muted" style="font-size:.82rem">Saving rewrites the computed sections of the MD file; advising notes and hand-added sections are preserved.</p>
+    </form>
+  </div>
+</div>
+
+{% if st.error %}<div class="box danger">⚠ {{ st.error }}</div>{% endif %}
+
+{% if st.an %}
+<h2>Flags</h2>
+{% if st.an.flags %}
+<ul class="flags">
+  {% for kind, txt in st.an.flags %}<li>{{ flag_icon[kind] }} {{ txt|mini_md }}</li>{% endfor %}
+</ul>
+{% else %}<p>None 🎉</p>{% endif %}
+
+{% if st.an.in_progress %}
+<h2>Currently enrolled — no final grade yet ({{ short_term(*st.an.latest_term) }})</h2>
+<ul>
+  {% for g in st.an.in_progress %}
+  <li>{{ g.course_code }} — {{ g.course_title.title() }}{% if g.midterm %} <span class="muted">(midterm {{ g.midterm }})</span>{% endif %}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<h2>Curriculum checklist <span class="muted" style="font-weight:normal">({{ cur_labels[st.an.curkey] }})</span></h2>
+{% set ns = namespace(yt=None) %}
+{% for item in st.an.checklist %}
+  {% set r = item.row %}
+  {% if (r.year, r.term) != ns.yt %}
+    {% if ns.yt is not none %}</table>{% endif %}
+    {% set ns.yt = (r.year, r.term) %}
+    <h3>Year {{ r.year }} — {{ {"1st": "1st Semester", "2nd": "2nd Semester"}.get(r.term, r.term) }}</h3>
+    <table>
+    <tr><th>Course</th><th>Title</th><th>Units</th><th>Prerequisite</th><th>Status</th><th>Grade · When</th><th>Prior attempts</th></tr>
+  {% endif %}
+  {% set s = row_status(item) %}
+  <tr><td>{{ r.code }}</td><td>{{ r.title }}</td><td>{{ "%g"|format(r.units) }}</td><td>{{ r.prereq }}</td>
+      <td>{{ s[0] }}</td><td>{{ s[1] }}</td><td class="muted">{{ s[2] }}</td></tr>
+{% endfor %}
+{% if st.an.checklist %}</table>{% endif %}
+
+{% if st.an.extra %}
+<h2>Other courses taken (not matched to checklist)</h2>
+<table>
+  <tr><th>Course</th><th>Title</th><th>Units</th><th>Grade</th><th>When</th></tr>
+  {% for g in st.an.extra %}
+  <tr><td>{{ g.course_code }}</td><td>{{ g.course_title.title() }}</td><td>{{ "%g"|format(g.units) }}</td>
+      <td>{{ g.grade or "—" }}{% if g.completion %} → {{ g.completion }}{% endif %}</td>
+      <td>{{ short_term(g.academic_year, g.semester) }}</td></tr>
+  {% endfor %}
+</table>
+{% endif %}
+
+<h2>Grade history by term</h2>
+{% for t in history %}
+<h3>{{ t.label }} — {{ "%g"|format(t.units) }} units{% if t.gwa %} · term GWA {{ "%.2f"|format(t.gwa) }}{% endif %}</h3>
+<table>
+  <tr><th>Course</th><th>Title</th><th>Units</th><th>Midterm</th><th>Final</th><th>Completion</th></tr>
+  {% for g in t.recs %}
+  <tr><td>{{ g.course_code }}</td><td>{{ g.course_title.title() }}</td><td>{{ "%g"|format(g.units) }}</td>
+      <td>{{ g.midterm or "—" }}</td><td>{{ g.grade or "—" }}</td><td>{{ g.completion or "—" }}</td></tr>
+  {% endfor %}
+</table>
+{% endfor %}
+{% else %}
+<div class="box">No raw grade data (<code>raw/{{ st.sid }}.json</code> missing) — the MD file is shown as the only source.
+  <a href="{{ url_for('import_scrape') }}">Import a scrape</a> to enable computed views.</div>
+{% endif %}
+
+<h2 id="notes">Advising notes</h2>
+<div class="box no-print">
+  <form method="post" action="{{ url_for('add_note', sid=st.sid) }}">
+    <input type="hidden" name="md_hash" value="{{ st.md_hash }}">
+    <p style="display:flex; gap:.6rem; align-items:center;">
+      <input type="date" name="date" value="{{ today() }}">
+      <input type="text" name="note" placeholder="New advising note (newest on top)…" style="flex:1" required>
+      <button>Add note</button>
+    </p>
+  </form>
+</div>
+{% if st.notes %}
+<table>
+  <tr><th style="width:8.5rem">Date</th><th>Note</th></tr>
+  {% for d, n in st.notes %}<tr><td>{{ d }}</td><td>{{ n|mini_md }}</td></tr>{% endfor %}
+</table>
+{% else %}<p class="muted">No notes yet.</p>{% endif %}
+{% endblock %}

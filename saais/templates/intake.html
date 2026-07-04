@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}New advisee{% endblock %}
+{% block content %}
+<h1>New advisee intake</h1>
+<p class="muted">Scaffolds <code>raw/&lt;student-no&gt;.json</code>, the
+<code>students/active/&lt;Folder&gt;/</code> directory, and a fresh advising MD file
+(what <code>tools/generate_student_md.py</code> did, per student).</p>
+
+<form method="post" enctype="multipart/form-data" class="box">
+  <p><label>Folder name (as in <code>students/active/</code>)<br>
+     <input type="text" name="folder" placeholder="Surname, Firstname" style="width:22rem" required></label></p>
+  <p><label>Scrape JSON file <input type="file" name="file" accept=".json"></label></p>
+  <p class="muted">…or paste JSON:</p>
+  <p><textarea name="json" rows="12" placeholder='{"student": {"student_number": "26-1-00001", "name": "SURNAME, FIRSTNAME MI", "program": "BSCS"}, "grades": [...]}'></textarea></p>
+  <button>Create advisee</button>
+</form>
+{% endblock %}
