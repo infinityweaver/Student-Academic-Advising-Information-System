@@ -33,7 +33,7 @@
       <p><label>Contact<br><input type="text" name="contact" value="{{ st.fields.get('Contact', '') }}" style="width:100%"></label></p>
       <p><label>Curriculum<br>
         <select name="curriculum">
-          {% for key, label in cur_labels.items() %}
+          {% for key, label in cur_labels().items() %}
           <option value="{{ key }}" {{ "selected" if st.an and st.an.curkey == key }}>{{ label }}</option>
           {% endfor %}
         </select></label>
@@ -63,7 +63,7 @@
 </ul>
 {% endif %}
 
-<h2>Curriculum checklist <span class="muted" style="font-weight:normal">({{ cur_labels[st.an.curkey] }})</span></h2>
+<h2>Curriculum checklist <span class="muted" style="font-weight:normal">({{ cur_labels().get(st.an.curkey, st.an.curkey) }})</span></h2>
 {% set ns = namespace(yt=None) %}
 {% for item in st.an.checklist %}
   {% set r = item.row %}

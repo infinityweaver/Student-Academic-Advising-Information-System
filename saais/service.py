@@ -152,6 +152,68 @@ def graduate(store: Store, st, year):
     return dest
 
 
+# ------------------------------------------------------------------ curricula
+def curriculum_refs(store: Store, cid):
+    """Students whose record explicitly references curriculum `cid`."""
+    return [st for st in store.all_students()
+            if st.record and st.record["student"].get("curriculum") == cid]
+
+
+def create_curriculum(program, start, end, sections, thresholds=None, cid=None):
+    from datetime import date
+    program = (program or "").strip().upper()
+    if not program:
+        raise ValueError("Program is required (e.g. BSCS).")
+    cid = (cid or f"{program.lower()}-{start}").strip()
+    if curriculum.get(cid):
+        raise ValueError(f"A curriculum '{cid}' already exists.")
+    today = date.today().isoformat()
+    cur = {"schema": curriculum.SCHEMA, "id": cid, "program": program,
+           "effective_start": start, "effective_end": end or None,
+           "sections": sections, "thresholds": thresholds or [],
+           "meta": {"created": today, "updated": today, "source": "manual"}}
+    curriculum.save(cur)
+    return cid
+
+
+def edit_curriculum_years(cid, start, end):
+    """Only the effective year range is editable after creation — program,
+    sections and courses are locked (students' checklists depend on them)."""
+    from datetime import date
+    cur = curriculum.get(cid)
+    if not cur:
+        raise ValueError(f"No curriculum '{cid}'.")
+    cur["effective_start"] = start
+    cur["effective_end"] = end or None
+    cur.setdefault("meta", {})["updated"] = date.today().isoformat()
+    curriculum.save(cur)
+
+
+def delete_curriculum(store: Store, cid):
+    refs = curriculum_refs(store, cid)
+    if refs:
+        names = ", ".join(st.name for st in refs[:5])
+        more = f" (+{len(refs) - 5} more)" if len(refs) > 5 else ""
+        raise ValueError(f"Cannot delete: {len(refs)} student record(s) use this "
+                         f"curriculum — {names}{more}.")
+    if len(curriculum.load_all()) <= 1:
+        raise ValueError("Cannot delete the only curriculum.")
+    curriculum.delete(cid)
+    store.invalidate()
+
+
+def import_curriculum_xlsx(stream, program, start, end, cid=None):
+    program = (program or "").strip().upper()
+    if not program:
+        raise ValueError("Program is required (e.g. BSCS).")
+    cid = (cid or f"{program.lower()}-{start}").strip()
+    if curriculum.get(cid):
+        raise ValueError(f"A curriculum '{cid}' already exists.")
+    cur = curriculum.from_xlsx(stream, cid, program, start, end or None)
+    curriculum.save(cur)
+    return cid
+
+
 # ------------------------------------------------------------------ exports
 def render_md(store: Store, st):
     """The student's advising Markdown, generated from the record on demand."""

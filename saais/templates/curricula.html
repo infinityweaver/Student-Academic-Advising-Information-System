@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Curricula{% endblock %}
+{% block content %}
+<h1>Curricula</h1>
+<p class="muted">First-class curriculum records (<code>data/curricula/</code> — no PII, committed to git).
+After creation only the <strong>effective years</strong> are editable; sections and courses are locked
+because students' checklists depend on them.</p>
+
+<p class="no-print"><a href="{{ url_for('curriculum_new') }}"><button>＋ Add curriculum</button></a></p>
+
+<table>
+  <tr><th>Curriculum</th><th>Sections</th><th>Courses</th><th>Total units</th><th>Students using</th>
+      <th class="no-print"></th><th class="no-print"></th></tr>
+  {% for r in rows %}
+  <tr>
+    <td><strong>{{ r.label }}</strong> <span class="muted">({{ r.cur.id }})</span></td>
+    <td>{{ r.cur.sections|length }}</td>
+    <td>{{ r.n_courses }}</td>
+    <td>{{ "%g"|format(r.units) }}</td>
+    <td>{{ r.n_students }}</td>
+    <td class="no-print"><a href="{{ url_for('curriculum_edit', cid=r.cur.id) }}"><button class="secondary">Edit</button></a></td>
+    <td class="no-print">
+      <form class="inline" method="post" action="{{ url_for('curriculum_delete', cid=r.cur.id) }}"
+            onsubmit="return confirm('Delete curriculum {{ r.label }}? A backup copy is kept in .backups/.');">
+        <button class="secondary">Delete</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+  {% if not rows %}<tr><td colspan="7" class="muted">No curricula yet — add one or import a workbook below.</td></tr>{% endif %}
+</table>
+
+<h2>Import a Course-Checklist workbook</h2>
+<div class="box no-print">
+  <form method="post" action="{{ url_for('curriculum_import') }}" enctype="multipart/form-data">
+    <p style="display:flex; gap:.8rem; align-items:end; flex-wrap:wrap;">
+      <label>Workbook (.xlsx)<br><input type="file" name="file" accept=".xlsx" required></label>
+      <label>Program<br><input type="text" name="program" value="BSCS" size="8" required></label>
+      <label>Effective from (year)<br><input type="number" name="start" placeholder="2018" required></label>
+      <label>To (year; empty = present)<br><input type="number" name="end" placeholder=""></label>
+      <button>Import</button>
+    </p>
+    <p class="muted">Reads the <code>Student</code> sheet of the existing
+    <code>Course-Checklist-*.xlsx</code> files — current curricula don't need re-encoding.</p>
+  </form>
+</div>
+{% endblock %}

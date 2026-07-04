@@ -86,7 +86,9 @@ year range is editable — students' checklists depend on the sections/courses.
 ```jsonc
 {
   "schema": 1,
-  "id": "bscs-2018",                // slug: <program>-<start year>
+  "id": "bscs-2018",                // slug: <program>-<start year>; the two
+                                    // migrated legacy curricula keep their v1
+                                    // keys "2018"/"2025" (student records use them)
   "program": "BSCS",
   "effective_start": 2018,
   "effective_end": 2024,            // null = "present"
@@ -100,8 +102,11 @@ year range is editable — students' checklists depend on the sections/courses.
       ]
     }
   ],
-  "thresholds": [[0, "1st year"], [36, "2nd year"], [72, "3rd year"], [110, "4th year"]],
-  "meta": { "created": "2026-07-05", "updated": "2026-07-05" }
+  // Year-level thresholds; the last pair is (total units, "Graduating").
+  // Omitted on creation -> quartiles of total units.
+  "thresholds": [[0, "1st year"], [52, "2nd year"], [98, "3rd year"],
+                 [140, "4th year"], [168, "Graduating"]],
+  "meta": { "created": "2026-07-05", "updated": "2026-07-05", "source": "xlsx import" }
 }
 ```
 

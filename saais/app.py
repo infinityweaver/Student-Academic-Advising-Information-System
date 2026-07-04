@@ -38,7 +38,7 @@ def create_app():
     app.jinja_env.filters["mini_md"] = mini_md
     app.jinja_env.globals.update(
         cfg=cfg, today=lambda: date.today().isoformat(), days_until=days_until,
-        cur_labels=curriculum.CURRICULUM_LABEL, flag_icon=rules.FLAG_ICON,
+        cur_labels=curriculum.labels, flag_icon=rules.FLAG_ICON,
         short_term=rules.short_term,
     )
 
@@ -252,6 +252,100 @@ def create_app():
             except (scrape.ScrapeError, ValueError) as e:
                 flash(f"⚠ {e}")
         return render_template("intake.html")
+
+    # ------------------------------------------------------------- curricula
+    def _parse_course_lines(text, sec_label):
+        """One course per line: 'code | title | units | prerequisite'."""
+        courses = []
+        for ln, line in enumerate(text.splitlines(), start=1):
+            if not line.strip():
+                continue
+            parts = [p.strip() for p in line.split("|")]
+            if len(parts) < 3:
+                raise ValueError(f"{sec_label}, line {ln}: expected "
+                                 "'code | title | units | prerequisite'.")
+            courses.append({"code": parts[0], "title": parts[1], "units": parts[2],
+                            "prereq": parts[3] if len(parts) > 3 and parts[3] else "None"})
+        return courses
+
+    def _parse_sections(form):
+        sections, i = [], 0
+        while f"sec{i}_year" in form:
+            year, term = form[f"sec{i}_year"], form.get(f"sec{i}_term", "1st")
+            text = form.get(f"sec{i}_courses", "")
+            i += 1
+            if not year.strip() and not text.strip():
+                continue  # empty extra block
+            sections.append({"year": year, "term": term,
+                             "courses": _parse_course_lines(text, f"Section {i}")})
+        return sections
+
+    @app.route("/curricula")
+    def curricula():
+        rows = []
+        for cid, cur in sorted(curriculum.load_all().items(),
+                               key=lambda kv: (kv[1]["program"], kv[1]["effective_start"])):
+            rows.append({"cur": cur, "label": curriculum.label(cur),
+                         "n_courses": len(cur["courses"]),
+                         "units": curriculum.total_units(cur),
+                         "n_students": len(service.curriculum_refs(store, cid))})
+        return render_template("curricula.html", rows=rows)
+
+    @app.route("/curricula/new", methods=["GET", "POST"])
+    def curriculum_new():
+        if request.method == "POST":
+            try:
+                cid = service.create_curriculum(
+                    request.form.get("program", ""), request.form.get("start", ""),
+                    request.form.get("end", "").strip() or None,
+                    _parse_sections(request.form),
+                    thresholds=rules.parse_thresholds(request.form.get("thresholds", "")))
+                flash(f"Curriculum {cid} created.")
+                return redirect(url_for("curricula"))
+            except (ValueError, curriculum.CurriculumError) as e:
+                flash(f"⚠ {e}")
+        return render_template("curriculum_new.html")
+
+    @app.route("/curricula/<cid>/edit", methods=["GET", "POST"])
+    def curriculum_edit(cid):
+        cur = curriculum.get(cid)
+        if not cur:
+            abort(404)
+        if request.method == "POST":
+            try:
+                service.edit_curriculum_years(cid, request.form.get("start", ""),
+                                              request.form.get("end", "").strip() or None)
+                flash(f"Effective years updated for {cid}.")
+                return redirect(url_for("curricula"))
+            except (ValueError, curriculum.CurriculumError) as e:
+                flash(f"⚠ {e}")
+        return render_template("curriculum_edit.html", cur=cur,
+                               label=curriculum.label(cur),
+                               n_students=len(service.curriculum_refs(store, cid)))
+
+    @app.post("/curricula/<cid>/delete")
+    def curriculum_delete(cid):
+        try:
+            service.delete_curriculum(store, cid)
+            flash(f"Curriculum {cid} deleted (previous version backed up).")
+        except (ValueError, curriculum.CurriculumError) as e:
+            flash(f"⚠ {e}")
+        return redirect(url_for("curricula"))
+
+    @app.post("/curricula/import")
+    def curriculum_import():
+        f = request.files.get("file")
+        if not f or not f.filename:
+            flash("⚠ Choose a Course-Checklist .xlsx file to import.")
+            return redirect(url_for("curricula"))
+        try:
+            cid = service.import_curriculum_xlsx(
+                f, request.form.get("program", ""), request.form.get("start", ""),
+                request.form.get("end", "").strip() or None)
+            flash(f"Imported {f.filename} as curriculum {cid}.")
+        except (ValueError, curriculum.CurriculumError) as e:
+            flash(f"⚠ {e}")
+        return redirect(url_for("curricula"))
 
     @app.post("/export-md")
     def export_md():

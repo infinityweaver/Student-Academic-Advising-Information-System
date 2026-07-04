@@ -1,0 +1,402 @@
+{
+  "schema": 1,
+  "id": "2025",
+  "program": "BSCS",
+  "effective_start": 2025,
+  "effective_end": null,
+  "sections": [
+    {
+      "year": 1,
+      "term": "1st",
+      "courses": [
+        {
+          "code": "CSIT 100",
+          "title": "Introduction to Computing",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "CSIT 101",
+          "title": "Fundamentals of Programming",
+          "units": 4.0,
+          "prereq": "None"
+        },
+        {
+          "code": "CSci 180",
+          "title": "Pre-calculus for CS",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "Comm 11",
+          "title": "Purposive Communication",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "Entr 11",
+          "title": "Entrepreneurial Mind",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "Itec 11",
+          "title": "Living in the IT Era",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "ScSc 11",
+          "title": "Understanding the Self",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "PhEd 11",
+          "title": "Physical Activity Towards Health and Fitness 1 (PATHFit 1) – Movement Competency Training or MCT",
+          "units": 2.0,
+          "prereq": "None"
+        },
+        {
+          "code": "NSTP 11",
+          "title": "National Service Training Program I",
+          "units": 3.0,
+          "prereq": "None"
+        }
+      ]
+    },
+    {
+      "year": 1,
+      "term": "2nd",
+      "courses": [
+        {
+          "code": "CSIT 102",
+          "title": "Intermediate Programming",
+          "units": 3.0,
+          "prereq": "CSIT 101"
+        },
+        {
+          "code": "CSci 102",
+          "title": "Discrete Structures I",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "CSci 121",
+          "title": "Computer Organization and Architecture",
+          "units": 3.0,
+          "prereq": "CSIT 100"
+        },
+        {
+          "code": "CSci 181",
+          "title": "Differential Calculus for CS",
+          "units": 3.0,
+          "prereq": "CSci 180"
+        },
+        {
+          "code": "Math 11",
+          "title": "Mathematics in the Modern World",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "ScSc 12",
+          "title": "Readings in Philippine History",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "ScTS 11a",
+          "title": "Science, Technology, and Society",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "Envi 11",
+          "title": "Environmental Science",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "PhEd 12",
+          "title": "Physical Activity Towards Health and Fitness 2 (PATHFit 2) – Exercise-based Fitness Activities",
+          "units": 2.0,
+          "prereq": "PhEd 11"
+        },
+        {
+          "code": "NSTP 12",
+          "title": "National Service Training Program II",
+          "units": 3.0,
+          "prereq": "NSTP 11"
+        }
+      ]
+    },
+    {
+      "year": 2,
+      "term": "1st",
+      "courses": [
+        {
+          "code": "CSIT 103",
+          "title": "Data Structures and Algorithms",
+          "units": 4.0,
+          "prereq": "CSIT 102"
+        },
+        {
+          "code": "CSIT 104",
+          "title": "Information Management",
+          "units": 3.0,
+          "prereq": "CSIT 102"
+        },
+        {
+          "code": "CSIT 105",
+          "title": "Applications Development and Emerging Technologies",
+          "units": 3.0,
+          "prereq": "CSIT 102"
+        },
+        {
+          "code": "CSci 103",
+          "title": "Discrete Structures II",
+          "units": 3.0,
+          "prereq": "CSci 102"
+        },
+        {
+          "code": "CSci 122",
+          "title": "Human Computer Interaction",
+          "units": 3.0,
+          "prereq": "CSIT 100"
+        },
+        {
+          "code": "CSci 182",
+          "title": "Integral Calculus for CS",
+          "units": 3.0,
+          "prereq": "CSci 181"
+        },
+        {
+          "code": "ScSc 13",
+          "title": "The Contemporary World",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "PhEd 13",
+          "title": "Physical Activities Toward Health and Fitness 3 (PATHFit 3)",
+          "units": 2.0,
+          "prereq": "PhEd 11, PhEd 12"
+        }
+      ]
+    },
+    {
+      "year": 2,
+      "term": "2nd",
+      "courses": [
+        {
+          "code": "CSci 104",
+          "title": "Algorithms and Complexity",
+          "units": 4.0,
+          "prereq": "CSIT 103"
+        },
+        {
+          "code": "CSci 126",
+          "title": "Networks and Communications",
+          "units": 3.0,
+          "prereq": "CSIT 100"
+        },
+        {
+          "code": "CSci 120",
+          "title": "Object-oriented Programming",
+          "units": 3.0,
+          "prereq": "CSIT 105"
+        },
+        {
+          "code": "CSci 154",
+          "title": "Quantitative Methods for CS",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "CSci 183",
+          "title": "Linear Algebra and Matrix Theory",
+          "units": 3.0,
+          "prereq": "CSci 181"
+        },
+        {
+          "code": "Humn 11",
+          "title": "Art Appreciation",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "ScSc 16",
+          "title": "Life and Works of Rizal",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "PhEd 14",
+          "title": "Physical Activities Toward Health and Fitness 4 (PATHFit 4)",
+          "units": 2.0,
+          "prereq": "PhEd 11, PhEd 12"
+        }
+      ]
+    },
+    {
+      "year": 3,
+      "term": "1st",
+      "courses": [
+        {
+          "code": "CSci 107",
+          "title": "Automata Theory and Formal Languages",
+          "units": 3.0,
+          "prereq": "CSci 103"
+        },
+        {
+          "code": "CSci 123",
+          "title": "Operating Systems",
+          "units": 3.0,
+          "prereq": "CSci 121"
+        },
+        {
+          "code": "CSci 128",
+          "title": "Information Assurance and Security",
+          "units": 3.0,
+          "prereq": "CSci 126"
+        },
+        {
+          "code": "CSci 135",
+          "title": "Software Engineering I",
+          "units": 3.0,
+          "prereq": "CSIT 105"
+        },
+        {
+          "code": "CSci 141",
+          "title": "Artificial Intelligence",
+          "units": 3.0,
+          "prereq": "CSci 104"
+        },
+        {
+          "code": "CSci 198",
+          "title": "Research Planning and Manuscript Preparation",
+          "units": 3.0,
+          "prereq": "CSci 154"
+        },
+        {
+          "code": "Phlo 11",
+          "title": "Ethics",
+          "units": 3.0,
+          "prereq": "None"
+        }
+      ]
+    },
+    {
+      "year": 3,
+      "term": "2nd",
+      "courses": [
+        {
+          "code": "CSci 200",
+          "title": "Undergraduate Thesis I",
+          "units": 2.0,
+          "prereq": "None"
+        },
+        {
+          "code": "CSci 108",
+          "title": "Programming Languages",
+          "units": 3.0,
+          "prereq": "CSci 107"
+        },
+        {
+          "code": "CSci 136",
+          "title": "Software Engineering II",
+          "units": 3.0,
+          "prereq": "CSci 135"
+        },
+        {
+          "code": "CSci 193",
+          "title": "Social Issues and Professional Practice",
+          "units": 3.0,
+          "prereq": "CSIT 100"
+        },
+        {
+          "code": "CSci 171",
+          "title": "Computer Science Elective 1",
+          "units": 3.0,
+          "prereq": "All CSci courses until 1st sem of 3rd year"
+        }
+      ]
+    },
+    {
+      "year": 3,
+      "term": "Midyear",
+      "courses": [
+        {
+          "code": "CSci 172",
+          "title": "Computer Science Elective 2",
+          "units": 3.0,
+          "prereq": "CSci 171"
+        }
+      ]
+    },
+    {
+      "year": 4,
+      "term": "1st",
+      "courses": [
+        {
+          "code": "CSci 173",
+          "title": "Computer Science Elective 3",
+          "units": 3.0,
+          "prereq": "CSci 172"
+        },
+        {
+          "code": "CSci 199",
+          "title": "Undergraduate Seminar",
+          "units": 1.0,
+          "prereq": "None"
+        },
+        {
+          "code": "CSci 200",
+          "title": "Undergraduate Thesis II",
+          "units": 4.0,
+          "prereq": "None"
+        }
+      ]
+    },
+    {
+      "year": 4,
+      "term": "2nd",
+      "courses": [
+        {
+          "code": "CSci 200a",
+          "title": "Internship / On-the-Job Training / Practicum",
+          "units": 3.0,
+          "prereq": "All CSci courses from 1st year until 3rd year"
+        }
+      ]
+    }
+  ],
+  "thresholds": [
+    [
+      0.0,
+      "1st year"
+    ],
+    [
+      56.0,
+      "2nd year"
+    ],
+    [
+      104.0,
+      "3rd year"
+    ],
+    [
+      142.0,
+      "4th year"
+    ],
+    [
+      153.0,
+      "Graduating"
+    ]
+  ],
+  "meta": {
+    "created": "2026-07-05",
+    "updated": "2026-07-05",
+    "source": "xlsx import"
+  }
+}

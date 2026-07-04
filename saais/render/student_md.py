@@ -7,8 +7,7 @@ never parsed back; record.json is the source of truth."""
 from datetime import date
 
 from ..domain import rules
-from ..repo import records
-from ..repo.curriculum import CURRICULUM_LABEL
+from ..repo import curriculum, records
 
 TERM_LABEL = {"1st": "1st Semester", "2nd": "2nd Semester", "Midyear": "Midyear"}
 
@@ -32,10 +31,11 @@ def render(rec, an, source="record"):
     L.append("|---|---|")
     L.append(f"| Student No. | {sid} |")
     L.append(f"| Program | {s['program']} |")
+    cur_labels = curriculum.labels()
     if an:
-        L.append(f"| Curriculum | {CURRICULUM_LABEL.get(an['curkey'], an['curkey'])} |")
+        L.append(f"| Curriculum | {cur_labels.get(an['curkey'], an['curkey'])} |")
     elif s.get("curriculum"):
-        L.append(f"| Curriculum | {CURRICULUM_LABEL.get(s['curriculum'], s['curriculum'])} |")
+        L.append(f"| Curriculum | {cur_labels.get(s['curriculum'], s['curriculum'])} |")
     L.append(f"| Entered | {('AY ' + s['entered']) if s.get('entered') else '—'} |")
     L.append(f"| Email | {s.get('email') or '—'} |")
     L.append(f"| Contact | {s.get('contact') or '—'} |")

@@ -1,0 +1,438 @@
+{
+  "schema": 1,
+  "id": "2018",
+  "program": "BSCS",
+  "effective_start": 2018,
+  "effective_end": 2024,
+  "sections": [
+    {
+      "year": 1,
+      "term": "1st",
+      "courses": [
+        {
+          "code": "Comm 11",
+          "title": "Purposive Communication",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "CSci 11",
+          "title": "Introduction to Computing",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "CSci 13",
+          "title": "Fundamentals of Programming",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "CSci 15",
+          "title": "Pre-Calculus (Bridging Program for Calculus I)",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "Humn 12n",
+          "title": "Reading Visual Arts",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "Math 11n",
+          "title": "Mathematics in the Modern World",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "ScSc 11n",
+          "title": "Understanding the Self",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "PhEd 11",
+          "title": "Movement Enhancement",
+          "units": 2.0,
+          "prereq": "None"
+        },
+        {
+          "code": "NSTP 11",
+          "title": "National Service Training Program I",
+          "units": 3.0,
+          "prereq": "None"
+        }
+      ]
+    },
+    {
+      "year": 1,
+      "term": "2nd",
+      "courses": [
+        {
+          "code": "CSci 102",
+          "title": "Discrete Structures I",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "CSci 120",
+          "title": "Object-oriented Programming",
+          "units": 3.0,
+          "prereq": "CSci 13"
+        },
+        {
+          "code": "CSci 122",
+          "title": "Human Computer Interaction",
+          "units": 3.0,
+          "prereq": "CSci 11"
+        },
+        {
+          "code": "CSci 14",
+          "title": "Intermediate Programming",
+          "units": 3.0,
+          "prereq": "CSci 13"
+        },
+        {
+          "code": "Envi 11",
+          "title": "Environmental Science",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "Humn 11",
+          "title": "Art Appreciation",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "CSci 16",
+          "title": "Differential Calculus",
+          "units": 3.0,
+          "prereq": "CSci 15"
+        },
+        {
+          "code": "PhEd 12",
+          "title": "Fitness Exercises",
+          "units": 2.0,
+          "prereq": "PhEd 11"
+        },
+        {
+          "code": "NSTP 12",
+          "title": "National Service Training Program II",
+          "units": 3.0,
+          "prereq": "NSTP 11"
+        }
+      ]
+    },
+    {
+      "year": 2,
+      "term": "1st",
+      "courses": [
+        {
+          "code": "CSci 103",
+          "title": "Discrete Structures II",
+          "units": 3.0,
+          "prereq": "CSci 102"
+        },
+        {
+          "code": "CSci 150",
+          "title": "Fundamentals of Database Systems",
+          "units": 3.0,
+          "prereq": "CSci 14, CSci 102"
+        },
+        {
+          "code": "CSci 21c",
+          "title": "Data Structures and Algorithms",
+          "units": 3.0,
+          "prereq": "CSci 14, CSci 102"
+        },
+        {
+          "code": "CSci 22n",
+          "title": "Information Management",
+          "units": 3.0,
+          "prereq": "CSci 14, CSci 102"
+        },
+        {
+          "code": "Entr 11",
+          "title": "The Entrepreneurial Mind",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "Math 121",
+          "title": "Calculus II",
+          "units": 3.0,
+          "prereq": "CSci 16"
+        },
+        {
+          "code": "ScSc 12",
+          "title": "Readings in Philippine History",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "PhEd 13",
+          "title": "Physical Activities Towards Health and Fitness I",
+          "units": 2.0,
+          "prereq": "PhEd 11"
+        }
+      ]
+    },
+    {
+      "year": 2,
+      "term": "2nd",
+      "courses": [
+        {
+          "code": "CSci 23",
+          "title": "Applications Development and Emerging Technologies",
+          "units": 3.0,
+          "prereq": "CSci 14, CSci 120"
+        },
+        {
+          "code": "CSci 104",
+          "title": "Algorithms and Complexity",
+          "units": 3.0,
+          "prereq": "CSci 21, CSci 103"
+        },
+        {
+          "code": "CSci 121",
+          "title": "Computer Organization & Architecture",
+          "units": 3.0,
+          "prereq": "CSci 11, CSci 13"
+        },
+        {
+          "code": "Math 131s",
+          "title": "Linear Algebra and Matrix Theory",
+          "units": 3.0,
+          "prereq": "Math 121"
+        },
+        {
+          "code": "CSci 151",
+          "title": "Event Driven Programming",
+          "units": 3.0,
+          "prereq": "CSci 21"
+        },
+        {
+          "code": "ScTS 11",
+          "title": "Science, Technology and Society",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "ScSc 13n",
+          "title": "The Contemporary World",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "PhEd 14",
+          "title": "Physical Activities Towards Health and Fitness II",
+          "units": 2.0,
+          "prereq": "PhEd 11"
+        }
+      ]
+    },
+    {
+      "year": 3,
+      "term": "1st",
+      "courses": [
+        {
+          "code": "CSci 107",
+          "title": "Automata Theory and Formal Languages",
+          "units": 3.0,
+          "prereq": "CSci 21, CSci 103"
+        },
+        {
+          "code": "CSci 123",
+          "title": "Operating Systems",
+          "units": 3.0,
+          "prereq": "CSci 121"
+        },
+        {
+          "code": "CSci 135",
+          "title": "Software Engineering I",
+          "units": 3.0,
+          "prereq": "CSci 122, CSci 14"
+        },
+        {
+          "code": "CSci 141",
+          "title": "Intelligent Systems",
+          "units": 3.0,
+          "prereq": "CSci 104"
+        },
+        {
+          "code": "CSci 152",
+          "title": "Data Mining",
+          "units": 3.0,
+          "prereq": "CSci 14, CSci 103"
+        },
+        {
+          "code": "CSci 153",
+          "title": "Web Systems and Technologies",
+          "units": 3.0,
+          "prereq": "CSci 14, CSci 22"
+        },
+        {
+          "code": "Humn 13n",
+          "title": "Philippine Pop Culture",
+          "units": 3.0,
+          "prereq": "None"
+        }
+      ]
+    },
+    {
+      "year": 3,
+      "term": "2nd",
+      "courses": [
+        {
+          "code": "CSci 108",
+          "title": "Programming Languages",
+          "units": 3.0,
+          "prereq": "CSci 107"
+        },
+        {
+          "code": "CSci 136",
+          "title": "Software Engineering II",
+          "units": 3.0,
+          "prereq": "CSci 135"
+        },
+        {
+          "code": "CSci 142",
+          "title": "Graphics and Visual Computing",
+          "units": 3.0,
+          "prereq": "Math 131s, CSci 14"
+        },
+        {
+          "code": "CSci 126",
+          "title": "Networks and Communications",
+          "units": 3.0,
+          "prereq": "CSci 123"
+        },
+        {
+          "code": "CSci 145",
+          "title": "Platform Based Development",
+          "units": 3.0,
+          "prereq": "CSci 122, CSci 120"
+        },
+        {
+          "code": "CSci 198",
+          "title": "Research Planning and Manuscript Preparation",
+          "units": 3.0,
+          "prereq": "CSci 135"
+        },
+        {
+          "code": "CSci 128",
+          "title": "Information Assurance and Security",
+          "units": 3.0,
+          "prereq": "CSci 126 (co-requisite)"
+        }
+      ]
+    },
+    {
+      "year": 3,
+      "term": "Midyear",
+      "courses": [
+        {
+          "code": "CSci 200a",
+          "title": "Internship / On-the-Job-Training / Practicum",
+          "units": 3.0,
+          "prereq": "CSci 198"
+        }
+      ]
+    },
+    {
+      "year": 4,
+      "term": "1st",
+      "courses": [
+        {
+          "code": "CSci 193",
+          "title": "Social Issues and Professional Practice",
+          "units": 3.0,
+          "prereq": "CSci 136"
+        },
+        {
+          "code": "CSci 200",
+          "title": "Undergraduate Thesis I",
+          "units": 2.0,
+          "prereq": "None"
+        },
+        {
+          "code": "CSci 143",
+          "title": "Computational Science",
+          "units": 3.0,
+          "prereq": "CSci 21"
+        },
+        {
+          "code": "CSci 144",
+          "title": "Parallel and Distributed Computing",
+          "units": 3.0,
+          "prereq": "CSci 126"
+        },
+        {
+          "code": "CSci 154",
+          "title": "Quantitative Methods (incl. Modeling and Simulations)",
+          "units": 3.0,
+          "prereq": "CSci 21"
+        }
+      ]
+    },
+    {
+      "year": 4,
+      "term": "2nd",
+      "courses": [
+        {
+          "code": "CSci 200",
+          "title": "Undergraduate Thesis I",
+          "units": 4.0,
+          "prereq": "None"
+        },
+        {
+          "code": "ScSc 16",
+          "title": "Life and Works of Rizal",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "Phlo 11",
+          "title": "Ethics",
+          "units": 3.0,
+          "prereq": "None"
+        },
+        {
+          "code": "CSci 199",
+          "title": "Undergraduate Seminar",
+          "units": 1.0,
+          "prereq": "None"
+        }
+      ]
+    }
+  ],
+  "thresholds": [
+    [
+      0.0,
+      "1st year"
+    ],
+    [
+      52.0,
+      "2nd year"
+    ],
+    [
+      98.0,
+      "3rd year"
+    ],
+    [
+      140.0,
+      "4th year"
+    ],
+    [
+      168.0,
+      "Graduating"
+    ]
+  ],
+  "meta": {
+    "created": "2026-07-05",
+    "updated": "2026-07-05",
+    "source": "xlsx import"
+  }
+}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ label }}{% endblock %}
+{% block content %}
+<h1>Edit curriculum — {{ label }}</h1>
+<p class="muted"><code>data/curricula/{{ cur.id }}.json</code> · used by {{ n_students }} student record(s)</p>
+
+<div class="box">
+  <form method="post">
+    <p style="display:flex; gap:.8rem; align-items:end; flex-wrap:wrap;">
+      <label>Effective from (year)<br>
+        <input type="number" name="start" value="{{ cur.effective_start }}" required></label>
+      <label>To (year; empty = present)<br>
+        <input type="number" name="end" value="{{ cur.effective_end or '' }}"></label>
+      <button>Save effective years</button>
+    </p>
+  </form>
+  <p class="muted">Only the effective year range is editable. Program, sections and courses are
+  <strong>locked</strong> after creation — students' checklists depend on them.</p>
+</div>
+
+<h2>Sections & courses <span class="muted" style="font-weight:normal">(locked)</span></h2>
+{% for sec in cur.sections %}
+<h3>Year {{ sec.year }} — {{ {"1st": "1st Semester", "2nd": "2nd Semester"}.get(sec.term, sec.term) }}</h3>
+<table>
+  <tr><th>Course</th><th>Title</th><th>Units</th><th>Prerequisite</th></tr>
+  {% for c in sec.courses %}
+  <tr><td>{{ c.code }}</td><td>{{ c.title }}</td><td>{{ "%g"|format(c.units) }}</td><td>{{ c.prereq }}</td></tr>
+  {% endfor %}
+</table>
+{% endfor %}
+
+<h2>Year-level thresholds</h2>
+<table>
+  <tr><th>Units earned ≥</th><th>Year level</th></tr>
+  {% for u, lab in cur.thresholds %}<tr><td>{{ "%g"|format(u) }}</td><td>{{ lab }}</td></tr>{% endfor %}
+</table>
+<p class="muted">Overridable globally via <code>[year_level] thresholds</code> in <code>saais.toml</code>.</p>
+{% endblock %}

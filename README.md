@@ -68,6 +68,8 @@ academic advising/
 │   ├── graduated/<year>/      ← archived advisees (gitignored)
 │   └── inactive/              ← shifters / AWOL / LOA (gitignored)
 ├── raw/                       ← registrar grade scrapes, <student-no>.json (gitignored)
+├── data/
+│   └── curricula/             ← curriculum records, <id>.json (no PII — committed)
 ├── reference/
 │   ├── curriculum/            ← BSCS checklists & prospectus (2018–2024, 2025–present)
 │   ├── calendars/             ← current academic calendars
@@ -113,6 +115,7 @@ your own.
 |---|---|
 | **Home** | Status counts, ⏳ INC deadline countdown (1-year lapse rule), 🚪 stop-out list |
 | **Roster** | All advisees — sortable/filterable by status, curriculum, year level, GWA, flags |
+| **Curricula** | First-class curriculum records — add, import from xlsx, edit effective years, delete |
 | **Flags** | Every 🔴/🟡 item across advisees, grouped: INCs, retakes, delinquency, stop-outs |
 | **Student page** | Profile, flags, curriculum checklist, grade history by term, advising notes |
 | **Import scrape** | Drop/paste a fresh registrar JSON for an existing advisee |
