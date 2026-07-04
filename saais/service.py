@@ -121,6 +121,7 @@ def intake(store: Store, text, folder_name):
         raise ValueError(f"{folder_name} already has a record.json.")
     if store.get(sid):
         raise ValueError(f"A record for {sid} already exists.")
+    backups.backup(paths.raw_path(sid))     # back up any prior scrape before overwriting
     scrape.save(data)
     s = data["student"]
     rec = records.new_record(sid, s["name"], s["program"],
@@ -167,7 +168,8 @@ def render_md(store: Store, st):
 def export_md(store: Store, sids, out_dir=None):
     """Generate MD files for the selected students. Returns (zip_bytes, names);
     if out_dir is given the files are also written there."""
-    chosen = [st for st in store.all_students() if st.sid in set(sids)]
+    wanted = set(sids)
+    chosen = [st for st in store.all_students() if st.sid in wanted]
     if not chosen:
         raise ValueError("No students selected.")
     if out_dir:
