@@ -22,6 +22,10 @@ reference/rosters/*
 reference/misc/*
 !reference/misc/.gitkeep
 
+# Internal policy documents (none currently active; kept local only)
+reference/policies/*
+!reference/policies/.gitkeep
+
 # Derived data that contains student PII
 tools/roster.json
 ROSTER.md

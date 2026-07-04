@@ -2,13 +2,25 @@
 
 A **local, file-based advising workspace** for university academic advisers, with a
 small web system on top. Built for BSCS advising at Visayas State University (VSU,
-College of Engineering and Technology), but reusable by any adviser who tracks
-advisees as one Markdown file per student.
+Faculty of Computing), but reusable by any adviser who tracks advisees as one
+Markdown file per student.
 
 > **Privacy by design:** all student records (grades, contact info, rosters) are
 > **gitignored** and never leave this machine. This public repo contains only the
 > system, the curriculum references, and empty folder scaffolding — clone it and add
 > your own advisees.
+
+## Table of contents
+
+- [How it works](#how-it-works)
+- [Repository layout](#repository-layout)
+- [Installation](#installation)
+- [How to use the system](#how-to-use-the-system)
+- [Each student file contains](#each-student-file-contains)
+- [Grading rules (VSU)](#grading-rules-vsu)
+- [Reusing this for your own advisees](#reusing-this-for-your-own-advisees)
+- [What is and isn't committed](#what-is-and-isnt-committed)
+- [Changelog](#changelog)
 
 ## How it works
 
@@ -17,6 +29,19 @@ registrar grade scrapes live as JSON; the curriculum checklists are read-only Ex
 workbooks. The web system (SAAIS) is a *view and editor* over those files — every
 action in the browser writes back to them, so they stay readable and editable by hand
 even if the system is never opened again.
+
+Every write is **reversible**: the previous version of any mutated file is copied to
+`.backups/<timestamp>/` first, and writes are rejected with a *"file changed, reload"*
+prompt if the file was hand-edited while the page was open.
+
+**Round-trip safety.** A student MD file is an ordered list of `##` sections. SAAIS
+regenerates the **computed** sections (header table, Flags, Currently enrolled,
+Curriculum checklist, Grade history) wholesale from the raw grade data, and preserves
+the **Advising notes** section and any sections you add by hand **byte-for-byte**.
+Derived numbers (units earned, GWA, year level, flags) are always recomputed, never
+stored as truth.
+
+## Repository layout
 
 ```
 academic advising/
@@ -44,7 +69,8 @@ academic advising/
 ├── reference/
 │   ├── curriculum/            ← BSCS checklists & prospectus (2018–2024, 2025–present)
 │   ├── calendars/             ← academic calendars
-│   ├── policies/              ← CET academic residency policy form
+│   ├── policies/              ← local policy documents, if any (gitignored; there is
+│   │                             currently no active student-retention policy)
 │   ├── rosters/               ← official advisee lists per semester (gitignored)
 │   └── misc/                  ← (gitignored)
 ├── tools/                     ← generate_student_md.py — legacy one-shot generator,
@@ -52,44 +78,80 @@ academic advising/
 └── docs/                      ← SAAIS plan and implementation notes
 ```
 
-## Quick start
+## Installation
 
-Requirements: **Python 3.10+**, `pip install -r requirements.txt` (Flask + openpyxl).
+Requirements: **Python 3.10+** and **git**. Works on Windows, macOS, and Linux
+(the `.bat` launcher is Windows-only; use the command line elsewhere).
 
-```bat
+```bash
+# 1. Clone the repository
+git clone https://github.com/infinityweaver/Student-Academic-Advising-Information-System.git
+cd Student-Academic-Advising-Information-System
+
+# 2. Install dependencies (Flask + openpyxl)
+pip install -r requirements.txt
+
+# 3. Start the system
 python -m saais
 ```
 
-or double-click **`SAAIS.bat`**. The app opens at `http://127.0.0.1:8000/` — it binds
-to localhost only and has no authentication because it is a single-user local tool.
-**Do not expose it to a network**, and keep the folder out of cloud-sync services
-unless encrypted: the data is PII.
+The app opens at `http://127.0.0.1:8000/`. On Windows you can also double-click
+**`SAAIS.bat`**.
 
-## What SAAIS does
+> ⚠️ SAAIS binds to localhost only and has no authentication because it is a
+> single-user local tool. **Do not expose it to a network**, and keep the folder out
+> of cloud-sync services unless encrypted: the data is PII.
 
-| Area | Features |
+A fresh clone starts **empty** — the student folders exist but contain no records.
+See [Reusing this for your own advisees](#reusing-this-for-your-own-advisees) to load
+your own.
+
+## How to use the system
+
+### The pages
+
+| Page | What it's for |
 |---|---|
-| **Dashboard** | Status counts, ⏳ INC deadline countdown (1-year lapse rule), 🚪 stop-out list |
-| **Roster** | Sortable/filterable advisee table (status, curriculum, year level, GWA, flags) |
-| **Flags board** | All 🔴/🟡 items across advisees, grouped: INCs, retakes, delinquency, stop-outs |
+| **Home** | Status counts, ⏳ INC deadline countdown (1-year lapse rule), 🚪 stop-out list |
+| **Roster** | All advisees — sortable/filterable by status, curriculum, year level, GWA, flags |
+| **Flags** | Every 🔴/🟡 item across advisees, grouped: INCs, retakes, delinquency, stop-outs |
 | **Student page** | Profile, flags, curriculum checklist, grade history by term, advising notes |
-| **Advising notes** | Add dated notes from the browser — appended to the student's MD table |
-| **Scrape import** | Drop/paste a fresh registrar JSON → grades merged, checklist/flags/header regenerated |
-| **Grade encoding** | Enter final grades / INC completions through a form when no scrape is available |
-| **Enrollment advising** | *Can Enroll* computed from prerequisites; tick *Will Enroll*; unit-load check; printable advising slip |
-| **Lifecycle** | New-advisee intake (scaffolds folder + MD), mark graduated (archives the folder) |
+| **Import scrape** | Drop/paste a fresh registrar JSON for an existing advisee |
+| **New advisee** | Scaffold the folder + MD file for a new advisee from their grade JSON |
 
-Every write is **reversible**: the previous version of any mutated file is copied to
-`.backups/<timestamp>/` first, and writes are rejected with a *"file changed, reload"*
-prompt if the file was hand-edited while the page was open.
+### During an advising session
 
-### Round-trip safety
+1. Open the student's page — review **Flags** (retakes, INC deadlines, delinquency)
+   and the **curriculum checklist**.
+2. Click **📝 Enrollment advising** — SAAIS computes *Can Enroll* for every remaining
+   course from passed prerequisites. Tick the courses to take (the unit total warns
+   above the regular load), then **Generate advising slip** and print it for signing.
+   The advised courses are recorded as a dated advising note automatically.
+3. Add any extra **advising notes** (commitments, concerns) from the notes form —
+   they are appended to the student's MD file, newest on top.
 
-A student MD file is an ordered list of `##` sections. SAAIS regenerates the
-**computed** sections (header table, Flags, Currently enrolled, Curriculum checklist,
-Grade history) wholesale from the raw grade data, and preserves the **Advising notes**
-section and any sections you add by hand **byte-for-byte**. Derived numbers (units
-earned, GWA, year level, flags) are always recomputed, never stored as truth.
+### At the end of a term (grades released)
+
+1. **Import scrape** for each advisee with a fresh registrar JSON — grades are merged
+   and the checklist, flags, header, and `ROSTER.md` regenerate automatically.
+2. No scrape available? Use **🖊 Encode grades** on the student page to type final
+   grades and INC completions for the in-progress courses.
+3. When moving to a new term, update `[term]` in
+   [saais/saais.toml](saais/saais.toml) and restart — this drives the
+   *currently enrolled* section, stop-out detection, and the grade-encoding form.
+
+### Lifecycle
+
+- **New advisee** → intake page (paste their grade JSON, name the folder).
+- **Graduation** → *🎓 Mark graduated* on the student page moves the folder to
+  `students/graduated/<year>/`.
+- **Shifted out / AWOL** → move the folder to `students/inactive/` by hand.
+
+### Editing files by hand
+
+Still fully supported — the MD files remain plain Markdown. SAAIS picks up hand
+edits on the next page load, and its writes never touch the *Advising notes* section
+or any section you add yourself.
 
 ## Each student file contains
 
@@ -105,25 +167,18 @@ Configurable in [saais/saais.toml](saais/saais.toml):
 
 - 1.00 (excellent) … 3.00 (lowest pass); **5.00 = fail**; `S` = satisfactory (pass, no GWA weight); `DR` = dropped; `NA` = no attendance.
 - `INC` must be completed within **1 year**, otherwise it lapses to 5.00.
-- Delinquency flag: failed ≥ 25% of enrolled units in a term.
+- Delinquency **flag**: failed ≥ 25% of enrolled units in a term. This is an advising
+  heads-up only — there is currently **no active student-retention policy** attached
+  to it.
 - Year level by units earned — thresholds come from each curriculum workbook.
 - Status: 🟢 on track (no flags) · 🟡 watch (INCs / a retake pending) · 🔴 needs attention (recent delinquency, ≥3 retakes, or no current enrollment).
-
-## Semester workflow
-
-At each enrollment/advising period, per student — entirely in the browser:
-
-1. **Import** the fresh registrar scrape (or **encode grades** manually) — checklist, flags, header, and `ROSTER.md` update automatically.
-2. Check the **Flags board** and **INC deadlines** on the dashboard.
-3. Run **Enrollment advising** — review computed eligibility, tick the courses, print the advising slip for signing; the conversation is recorded as an advising note.
-4. On graduation, **Mark graduated** — the folder moves to `students/graduated/<year>/`.
 
 ## Reusing this for your own advisees
 
 Because all student data is gitignored, a fresh clone is an **empty but fully working
 system**:
 
-1. Clone the repo and `pip install -r requirements.txt`.
+1. [Install](#installation) as above.
 2. If your program differs, replace the curriculum workbooks in
    [reference/curriculum/](reference/curriculum/) (see the expected sheet layout in
    [saais/repo/curriculum.py](saais/repo/curriculum.py)) and adjust
@@ -152,12 +207,31 @@ Scrape JSON schema (one file per student, `raw/<student-no>.json`):
 | Public (committed) | Private (gitignored, `.gitkeep` placeholders keep the folders) |
 |---|---|
 | The SAAIS system (`saais/`, `tools/`, `docs/`) | `students/**` — advising MDs, checklist workbooks, contact info |
-| Curriculum checklists, prospectus, calendars, policy forms | `raw/*.json` — registrar grade scrapes |
+| Curriculum checklists, prospectus, calendars | `raw/*.json` — registrar grade scrapes |
 | This README | `ROSTER.md`, `tools/roster.json` — generated rosters |
-| | `reference/rosters/`, `reference/misc/` — official lists, grade monitoring |
+| | `reference/rosters/`, `reference/misc/`, `reference/policies/` — official lists, grade monitoring, local documents |
 | | `.backups/` — pre-write file snapshots |
 
 Git is used for versioning the *system*; student-file history is kept in `.backups/`
 instead, precisely so PII can never end up in a public git history. See
 [docs/SAAIS-IMPLEMENTATION.md](docs/SAAIS-IMPLEMENTATION.md) for this and other
 design decisions, and [docs/SAAIS-PLAN.md](docs/SAAIS-PLAN.md) for the original plan.
+
+## Changelog
+
+### 1.0.1 — 2026-07-04
+
+- Department affiliation updated to the **Faculty of Computing** (formerly under the
+  College of Engineering and Technology), including the printed advising slip.
+- Removed the inactive CET academic residency policy form from the public repo;
+  `reference/policies/` is now gitignored (no active student-retention policy).
+- README: added installation, usage, and changelog sections.
+
+### 1.0.0 — 2026-07-04
+
+- Initial release, implementing [docs/SAAIS-PLAN.md](docs/SAAIS-PLAN.md) phases 1–3:
+  dashboard with INC deadline tracker, roster, flags board, student pages; advising
+  notes, scrape import, manual grade encoding, profile edits; prerequisite-based
+  enrollment advising with printable slips; new-advisee intake and graduation
+  lifecycle. Timestamped backups before every write; PII kept out of the public repo
+  by design.
