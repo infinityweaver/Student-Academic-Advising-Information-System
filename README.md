@@ -68,11 +68,10 @@ academic advising/
 ├── raw/                       ← registrar grade scrapes, <student-no>.json (gitignored)
 ├── reference/
 │   ├── curriculum/            ← BSCS checklists & prospectus (2018–2024, 2025–present)
-│   ├── calendars/             ← academic calendars
-│   ├── policies/              ← local policy documents, if any (gitignored; there is
-│   │                             currently no active student-retention policy)
-│   ├── rosters/               ← official advisee lists per semester (gitignored)
-│   └── misc/                  ← (gitignored)
+│   ├── calendars/             ← current academic calendars
+│   └── rosters/               ← official advisee lists, recent semesters (gitignored)
+├── archive/                   ← obsolete records kept for reference: expired calendars,
+│                                 old rosters, superseded monitoring sheets (gitignored)
 ├── tools/                     ← generate_student_md.py — legacy one-shot generator,
 │                                 superseded by SAAIS (re-running it OVERWRITES notes!)
 └── docs/                      ← SAAIS plan and implementation notes
@@ -209,7 +208,8 @@ Scrape JSON schema (one file per student, `raw/<student-no>.json`):
 | The SAAIS system (`saais/`, `tools/`, `docs/`) | `students/**` — advising MDs, checklist workbooks, contact info |
 | Curriculum checklists, prospectus, calendars | `raw/*.json` — registrar grade scrapes |
 | This README | `ROSTER.md`, `tools/roster.json` — generated rosters |
-| | `reference/rosters/`, `reference/misc/`, `reference/policies/` — official lists, grade monitoring, local documents |
+| | `reference/rosters/` — official advisee lists |
+| | `archive/` — obsolete records kept for reference |
 | | `.backups/` — pre-write file snapshots |
 
 Git is used for versioning the *system*; student-file history is kept in `.backups/`
@@ -218,6 +218,17 @@ instead, precisely so PII can never end up in a public git history. See
 design decisions, and [docs/SAAIS-PLAN.md](docs/SAAIS-PLAN.md) for the original plan.
 
 ## Changelog
+
+### 1.0.2 — 2026-07-04
+
+- Repo audit: deleted the inactive CET residency policy form (also purged from git
+  history) and the superseded `tools/roster.json`.
+- New gitignored `archive/` directory for obsolete-but-kept records; moved the expired
+  2023-2024 calendar, AY 2022-2023 advisee rosters, and old monitoring sheets there
+  (`reference/misc/` and `reference/policies/` removed).
+- Standardized file names (`Academic-Calendar-AY-2025-2026.pdf`,
+  `Academic-Advisees-AY-2024-2025-1st-Sem.docx`, hyphenated curriculum PDFs) and fixed
+  student-folder naming anomalies.
 
 ### 1.0.1 — 2026-07-04
 

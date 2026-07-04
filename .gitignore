@@ -18,13 +18,9 @@ raw/*
 reference/rosters/*
 !reference/rosters/.gitkeep
 
-# Misc records with grades / personal data
-reference/misc/*
-!reference/misc/.gitkeep
-
-# Internal policy documents (none currently active; kept local only)
-reference/policies/*
-!reference/policies/.gitkeep
+# Archived records — obsolete but kept (old calendars, rosters, grade monitoring)
+archive/*
+!archive/.gitkeep
 
 # Derived data that contains student PII
 tools/roster.json
