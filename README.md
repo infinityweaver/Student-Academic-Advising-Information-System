@@ -219,25 +219,6 @@ design decisions, and [docs/SAAIS-PLAN.md](docs/SAAIS-PLAN.md) for the original 
 
 ## Changelog
 
-### 1.0.2 — 2026-07-04
-
-- Repo audit: deleted the inactive CET residency policy form (also purged from git
-  history) and the superseded `tools/roster.json`.
-- New gitignored `archive/` directory for obsolete-but-kept records; moved the expired
-  2023-2024 calendar, AY 2022-2023 advisee rosters, and old monitoring sheets there
-  (`reference/misc/` and `reference/policies/` removed).
-- Standardized file names (`Academic-Calendar-AY-2025-2026.pdf`,
-  `Academic-Advisees-AY-2024-2025-1st-Sem.docx`, hyphenated curriculum PDFs) and fixed
-  student-folder naming anomalies.
-
-### 1.0.1 — 2026-07-04
-
-- Department affiliation updated to the **Faculty of Computing** (formerly under the
-  College of Engineering and Technology), including the printed advising slip.
-- Removed the inactive CET academic residency policy form from the public repo;
-  `reference/policies/` is now gitignored (no active student-retention policy).
-- README: added installation, usage, and changelog sections.
-
 ### 1.0.0 — 2026-07-04
 
 - Initial release, implementing [docs/SAAIS-PLAN.md](docs/SAAIS-PLAN.md) phases 1–3:
