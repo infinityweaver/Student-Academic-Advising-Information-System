@@ -1,81 +1,60 @@
 # -*- coding: utf-8 -*-
-"""Write-back operations. Every mutation: backup → write file(s) → regenerate
-computed MD sections (hand-written sections preserved) → resync ROSTER.md."""
+"""Write-back operations over the JSON records. Every mutation: check the
+stale-write hash → backup → write record.json → resync ROSTER.md.
+
+Markdown is no longer written on mutation — it is generated on demand by
+export_md() (Students list → Export MD)."""
+import io
 import os
 import shutil
-from datetime import date
+import zipfile
 
 from .domain import rules
 from .index.store import Store
 from .render import roster_md, student_md
-from .repo import backups, curriculum, md_doc, paths, scrape
+from .repo import backups, curriculum, paths, records, scrape
 
 
 class Conflict(Exception):
-    """The file changed on disk after the page was loaded — reload and retry."""
+    """The record changed on disk after the page was loaded — reload and retry."""
 
 
 def _check_hash(st, expected_hash):
-    if expected_hash and st.md_hash and expected_hash != st.md_hash:
-        raise Conflict(f"{os.path.basename(st.md_path)} changed on disk since the page was loaded. "
+    if expected_hash and st.rec_hash and expected_hash != st.rec_hash:
+        raise Conflict("record.json changed on disk since the page was loaded. "
                        "Reload the page and re-apply your change.")
 
 
-def _info_from_fields(fields, email=None, contact=None):
-    return {
-        "email": email if email is not None else fields.get("Email", ""),
-        "contact": contact if contact is not None else fields.get("Contact", ""),
-    }
-
-
-def regenerate_md(store: Store, st, source="registrar scrape", email=None, contact=None, curkey=None):
-    """Re-render computed sections from raw data; keep notes/hand sections."""
-    if not st.raw or not st.an:
-        raise ValueError(f"No raw grade data for {st.name} — import a scrape first.")
-    an = st.an
-    if curkey and curkey != an["curkey"]:
-        an = rules.analyze(st.raw, curriculum.load_all(), store.config, curkey)
-    info = _info_from_fields(st.fields, email, contact)
-    fresh = student_md.render(st.raw, info, an, source)
-    if st.md_text is not None:
-        new_text = md_doc.merge(fresh, st.md_text)
-        backups.backup(st.md_path)
-    else:
-        new_text = fresh
-        st.md_path = paths.md_path(st.folder)
-    with open(st.md_path, "w", encoding="utf-8") as fh:
-        fh.write(new_text)
+def _write(store: Store, st):
+    records.save(st.folder_path, st.record)
+    store.invalidate(st)
     sync_roster(store)
-    return st.md_path
 
 
+# ------------------------------------------------------------------ mutations
 def add_note(store: Store, st, note, expected_hash=None, when=None):
     _check_hash(st, expected_hash)
-    if not note.strip():
-        raise ValueError("Empty note.")
-    backups.backup(st.md_path)
-    new_text = md_doc.add_note(st.md_text, when or date.today().isoformat(), note)
-    with open(st.md_path, "w", encoding="utf-8") as fh:
-        fh.write(new_text)
+    records.add_note(st.record, note, when)
+    _write(store, st)
 
 
 def edit_profile(store: Store, st, email, contact, curkey, expected_hash=None):
     _check_hash(st, expected_hash)
-    regenerate_md(store, st, source="profile edit; registrar scrape",
-                  email=email.strip(), contact=contact.strip(), curkey=curkey or None)
+    s = st.record["student"]
+    s["email"] = email.strip()
+    s["contact"] = contact.strip()
+    s["curriculum"] = curkey or None
+    _write(store, st)
 
 
 def encode_grades(store: Store, st, updates, expected_hash=None):
     """updates: [{'academic_year','semester','course_code','course_title','units',
-    'midterm','grade','completion'}] — existing (term, code) records are updated,
-    new ones appended. Then the MD is regenerated."""
+    'midterm','grade','completion'}] — existing (term, code) entries are updated,
+    new ones appended."""
     _check_hash(st, expected_hash)
-    if not st.raw:
-        raise ValueError("No raw grade data for this student.")
-    backups.backup(st.raw_path, st.md_path)
     changed = 0
     for u in updates:
-        rec = scrape.find_record(st.raw, u["academic_year"], u["semester"], u["course_code"])
+        rec = records.find_grade(st.record, u["academic_year"], u["semester"], u["course_code"])
         vals = {k: (u.get(k) or "").strip() or None for k in ("midterm", "grade", "completion")}
         if rec is None:
             if not u.get("course_title") or not u.get("units"):
@@ -83,7 +62,7 @@ def encode_grades(store: Store, st, updates, expected_hash=None):
             rec = {"academic_year": u["academic_year"], "semester": u["semester"],
                    "course_code": u["course_code"], "course_title": u["course_title"],
                    "units": float(u["units"]), **vals}
-            st.raw["grades"].append(rec)
+            st.record["grades"].append(rec)
             changed += 1
         else:
             before = {k: rec.get(k) for k in vals}
@@ -91,30 +70,47 @@ def encode_grades(store: Store, st, updates, expected_hash=None):
             if any(rec.get(k) != before[k] for k in vals):
                 changed += 1
     if changed:
-        scrape.save(st.raw)
-        store._cache.pop(st.folder, None)
-        st2 = store.by_folder(st.folder)
-        regenerate_md(store, st2, source="grade encoding; registrar scrape")
+        _write(store, st)
+    return changed
+
+
+def merge_scrape(rec, data):
+    """Merge a registrar scrape into a record: update matching (term, code)
+    grade entries, append new ones; refresh name/program. Returns #changed."""
+    changed = 0
+    for k in ("name", "program"):
+        if rec["student"].get(k) != data["student"][k]:
+            rec["student"][k] = data["student"][k]
+            changed += 1
+    for g in data["grades"]:
+        mine = records.find_grade(rec, g["academic_year"], g["semester"], g["course_code"])
+        if mine is None:
+            rec["grades"].append(dict(g))
+            changed += 1
+        elif any(mine.get(k) != g.get(k) for k in ("units", "midterm", "grade", "completion", "course_title")):
+            mine.update(g)
+            changed += 1
     return changed
 
 
 def import_scrape(store: Store, text):
-    """Paste/upload a fresh scrape → save raw JSON → regenerate the student MD.
-    Returns (sid, folder_or_None)."""
+    """Paste/upload a fresh scrape → keep an audit copy in raw/ → merge the
+    grade entries into the student's record. Returns (sid, student_or_None)."""
     data = scrape.parse_text(text)
     sid = data["student"]["student_number"]
     backups.backup(paths.raw_path(sid))
-    scrape.save(data)
-    store._cache.clear()
+    scrape.save(data)                       # audit copy of what the registrar said
     st = store.get(sid)
-    if st:
-        regenerate_md(store, st, source="scrape import")
-        return sid, st.folder
+    if st and st.record:
+        merge_scrape(st.record, data)
+        _write(store, st)
+        return sid, st
     return sid, None
 
 
 def intake(store: Store, text, folder_name):
-    """New advisee: save raw JSON + scaffold students/active/<Folder>/<FOLDER>.md."""
+    """New advisee: students/active/<Folder>/record.json seeded from a scrape
+    (plus an audit copy of the scrape in raw/)."""
     data = scrape.parse_text(text)
     sid = data["student"]["student_number"]
     folder_name = folder_name.strip().rstrip(".")
@@ -123,21 +119,26 @@ def intake(store: Store, text, folder_name):
     if os.sep in folder_name or "/" in folder_name or ".." in folder_name:
         raise ValueError("Folder name must be a plain name, not a path.")
     fpath = os.path.join(paths.ACTIVE_DIR, folder_name)
-    if os.path.exists(paths.md_path(folder_name)):
-        raise ValueError(f"{folder_name} already has an advising MD file.")
+    if os.path.exists(fpath):
+        raise ValueError(
+            f"{folder_name} already exists. If it is a legacy folder, run "
+            "`python -m saais.migrate` to migrate it; otherwise choose a different name.")
+    if store.get(sid):
+        raise ValueError(f"A record for {sid} already exists.")
+    backups.backup(paths.raw_path(sid))     # back up any prior scrape before overwriting
     scrape.save(data)
-    os.makedirs(fpath, exist_ok=True)
-    an = rules.analyze(data, curriculum.load_all(), store.config)
-    fresh = student_md.render(data, {}, an, source="intake")
-    with open(paths.md_path(folder_name), "w", encoding="utf-8") as fh:
-        fh.write(fresh)
-    store._cache.clear()
+    s = data["student"]
+    rec = records.new_record(sid, s["name"], s["program"],
+                             entered=f"20{sid[:2]}-20{int(sid[:2]) + 1}" if sid[:2].isdigit() else "")
+    rec["grades"] = data["grades"]
+    records.save(fpath, rec)
+    store.invalidate()
     sync_roster(store)
     return sid, folder_name
 
 
 def graduate(store: Store, st, year):
-    """Move the student folder to students/graduated/<year>/ and resync."""
+    """Mark graduated and move the folder to students/graduated/<year>/."""
     year = str(year).strip()
     if not year.isdigit():
         raise ValueError("Graduation year must be a number.")
@@ -146,11 +147,50 @@ def graduate(store: Store, st, year):
     dest = os.path.join(dest_dir, st.folder)
     if os.path.exists(dest):
         raise ValueError(f"{dest} already exists.")
-    backups.backup(st.md_path)
+    st.record["student"]["status"] = "graduated"
+    st.record["student"]["graduated_year"] = int(year)
+    records.save(st.folder_path, st.record)   # backs up the pre-graduation record
     shutil.move(st.folder_path, dest)
-    store._cache.pop(st.folder, None)
+    store.invalidate()
     sync_roster(store)
     return dest
+
+
+# ------------------------------------------------------------------ exports
+def render_md(store: Store, st):
+    """The student's advising Markdown, generated from the record on demand."""
+    if not st.record:
+        raise ValueError(f"{st.folder} has no record.")
+    an = st.an
+    if an is None and st.record["grades"]:
+        an = rules.analyze(st.record, curriculum.load_all(), store.config,
+                           st.record["student"].get("curriculum"))
+    return student_md.render(st.record, an)
+
+
+def export_md(store: Store, sids, out_dir=None):
+    """Generate MD files for the selected students. Returns (zip_bytes, names);
+    if out_dir is given the files are also written there."""
+    wanted = set(sids)
+    chosen = [st for st in store.all_students() if st.sid in wanted]
+    if not chosen:
+        raise ValueError("No students selected.")
+    if out_dir:
+        out_dir = out_dir.strip()
+        if not os.path.isdir(out_dir):
+            raise ValueError(f"Output directory does not exist: {out_dir}")
+    buf = io.BytesIO()
+    names = []
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for st in chosen:
+            name = st.folder.upper() + ".md"
+            text = render_md(store, st)
+            zf.writestr(name, text)
+            names.append(name)
+            if out_dir:
+                with open(os.path.join(out_dir, name), "w", encoding="utf-8") as fh:
+                    fh.write(text)
+    return buf.getvalue(), names
 
 
 def sync_roster(store: Store):

@@ -22,6 +22,11 @@ DEFAULTS = {
         "retakes_needing_attention": 3,
         "max_units_regular": 24,
     },
+    "year_level": {
+        # "units=label;units=label" ascending; empty = use the thresholds that
+        # ship with the student's curriculum.
+        "thresholds": "",
+    },
     "server": {
         "host": "127.0.0.1",
         "port": 8000,

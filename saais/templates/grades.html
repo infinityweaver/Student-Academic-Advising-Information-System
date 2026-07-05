@@ -3,10 +3,11 @@
 {% block content %}
 <h1>Encode grades — {{ st.name }}</h1>
 <p class="muted">For when a full scrape isn't available: enter final grades for in-progress courses,
-INC completions, or add a course record. Writes to <code>raw/{{ st.sid }}.json</code>, then regenerates the MD.</p>
+INC completions, or add a course record. Writes to the student's <code>record.json</code>
+(previous version backed up).</p>
 
 <form method="post">
-  <input type="hidden" name="md_hash" value="{{ st.md_hash }}">
+  <input type="hidden" name="rec_hash" value="{{ st.rec_hash }}">
   <table>
     <tr><th>AY</th><th>Semester</th><th>Course</th><th>Title</th><th>Units</th><th>Midterm</th><th>Final grade</th><th>Completion</th></tr>
     {% for g in rows %}
@@ -39,7 +40,7 @@ INC completions, or add a course record. Writes to <code>raw/{{ st.sid }}.json</
     </tr>
   </table>
   <input type="hidden" name="nrows" value="{{ n + 1 }}">
-  <p><button>Save grades & regenerate MD</button>
+  <p><button>Save grades</button>
      <a href="{{ url_for('student', sid=st.sid) }}"><button type="button" class="secondary">Cancel</button></a></p>
 </form>
 <p class="muted">Grading: 1.00 best – 3.00 lowest pass · 5.00 fail · INC (fill Completion when resolved) · DR dropped · S satisfactory. Leave Final blank to keep a course in progress.</p>

@@ -31,10 +31,13 @@
   <button>Apply</button>
 </form>
 
+<form method="post" action="{{ url_for('export_md') }}" hx-boost="false">
 <table>
-  <tr><th>Student</th><th>ID</th><th>Curriculum</th><th>Year level</th><th>Units</th><th>GWA</th><th>Status</th><th>Flags</th></tr>
+  <tr><th class="no-print"><input type="checkbox" onclick="this.closest('table').querySelectorAll('input[name=sids]').forEach(c => c.checked = this.checked)" title="Select all"></th>
+      <th>Student</th><th>ID</th><th>Curriculum</th><th>Year level</th><th>Units</th><th>GWA</th><th>Status</th><th>Flags</th></tr>
   {% for st in rows %}
   <tr>
+    <td class="no-print">{% if st.sid %}<input type="checkbox" name="sids" value="{{ st.sid }}">{% endif %}</td>
     <td>{% if st.sid %}<a href="{{ url_for('student', sid=st.sid) }}">{{ st.name }}</a>{% else %}{{ st.name }}{% endif %}</td>
     <td>{{ st.sid or "—" }}</td>
     {% if st.an %}
@@ -51,5 +54,12 @@
   </tr>
   {% endfor %}
 </table>
-<p class="muted">{{ rows|length }} shown.</p>
+<p class="no-print" style="display:flex; gap:.6rem; align-items:center;">
+  <button class="secondary">⬇ Export MD (ZIP) for selected</button>
+  <label class="muted">…or write into folder:
+    <input type="text" name="out_dir" placeholder="C:\path\to\folder (optional)" size="34"></label>
+</p>
+</form>
+<p class="muted">{{ rows|length }} shown. MD files are generated from the JSON records on demand —
+they are an export format, not the database.</p>
 {% endblock %}

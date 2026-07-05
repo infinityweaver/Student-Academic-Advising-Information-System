@@ -2,9 +2,9 @@
 {% block title %}New advisee{% endblock %}
 {% block content %}
 <h1>New advisee intake</h1>
-<p class="muted">Scaffolds <code>raw/&lt;student-no&gt;.json</code>, the
-<code>students/active/&lt;Folder&gt;/</code> directory, and a fresh advising MD file
-(what <code>tools/generate_student_md.py</code> did, per student).</p>
+<p class="muted">Scaffolds the <code>students/active/&lt;Folder&gt;/</code> directory with a fresh
+<code>record.json</code> seeded from the scrape (an audit copy is kept in
+<code>raw/&lt;student-no&gt;.json</code>).</p>
 
 <form method="post" enctype="multipart/form-data" class="box">
   <p><label>Folder name (as in <code>students/active/</code>)<br>

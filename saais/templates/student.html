@@ -3,8 +3,7 @@
 {% block content %}
 <h1>{{ st.name }} <span class="pill">{{ st.status }}</span></h1>
 <p class="muted">
-  <code>{{ st.md_path and st.md_path.replace("\\", "/").split("/students/")[-1] and "students/" + st.md_path.replace("\\", "/").split("/students/")[-1] }}</code>
-  {% if st.raw_path %} · <code>raw/{{ st.sid }}.json</code>{% endif %}
+  <code>students/{{ st.folder_path.replace("\\", "/").split("/students/")[-1] }}/record.json</code>
 </p>
 
 <div class="no-print" style="margin:.6rem 0 1rem; display:flex; gap:.6rem; flex-wrap:wrap;">
@@ -29,18 +28,19 @@
   <div class="box no-print">
     <h3 style="margin-top:0">Edit profile</h3>
     <form method="post" action="{{ url_for('edit_profile', sid=st.sid) }}">
-      <input type="hidden" name="md_hash" value="{{ st.md_hash }}">
-      <p><label>Email<br><input type="text" name="email" value="{{ st.fields.get('Email', '') }}" style="width:100%"></label></p>
-      <p><label>Contact<br><input type="text" name="contact" value="{{ st.fields.get('Contact', '') }}" style="width:100%"></label></p>
+      <input type="hidden" name="rec_hash" value="{{ st.rec_hash }}">
+      <p><label>Email<br><input type="text" name="email" value="{{ st.email }}" style="width:100%"></label></p>
+      <p><label>Contact<br><input type="text" name="contact" value="{{ st.contact }}" style="width:100%"></label></p>
       <p><label>Curriculum<br>
         <select name="curriculum">
+          <option value="" {{ "selected" if not st.curriculum_key }}>Autodetect{% if st.an %} (currently: {{ cur_labels[st.an.curkey] }}){% endif %}</option>
           {% for key, label in cur_labels.items() %}
-          <option value="{{ key }}" {{ "selected" if st.an and st.an.curkey == key }}>{{ label }}</option>
+          <option value="{{ key }}" {{ "selected" if st.curriculum_key == key }}>{{ label }}</option>
           {% endfor %}
         </select></label>
-        <span class="muted">(explicit per-student field — e.g. shifters on the new curriculum)</span></p>
-      <button>Save & regenerate</button>
-      <p class="muted" style="font-size:.82rem">Saving rewrites the computed sections of the MD file; advising notes and hand-added sections are preserved.</p>
+        <span class="muted">(explicit per-student field — e.g. shifters on the new curriculum; leave on Autodetect to infer from grades)</span></p>
+      <button>Save</button>
+      <p class="muted" style="font-size:.82rem">Saving writes <code>record.json</code> (previous version backed up). Derived values are recomputed, never stored.</p>
     </form>
   </div>
 </div>
@@ -105,14 +105,14 @@
 </table>
 {% endfor %}
 {% else %}
-<div class="box">No raw grade data (<code>raw/{{ st.sid }}.json</code> missing) — the MD file is shown as the only source.
-  <a href="{{ url_for('import_scrape') }}">Import a scrape</a> to enable computed views.</div>
+<div class="box">No grade entries in this record yet —
+  <a href="{{ url_for('import_scrape') }}">import a scrape</a> to enable computed views.</div>
 {% endif %}
 
 <h2 id="notes">Advising notes</h2>
 <div class="box no-print">
   <form method="post" action="{{ url_for('add_note', sid=st.sid) }}">
-    <input type="hidden" name="md_hash" value="{{ st.md_hash }}">
+    <input type="hidden" name="rec_hash" value="{{ st.rec_hash }}">
     <p style="display:flex; gap:.6rem; align-items:center;">
       <input type="date" name="date" value="{{ today() }}">
       <input type="text" name="note" placeholder="New advising note (newest on top)…" style="flex:1" required>
@@ -123,7 +123,7 @@
 {% if st.notes %}
 <table>
   <tr><th style="width:8.5rem">Date</th><th>Note</th></tr>
-  {% for d, n in st.notes %}<tr><td>{{ d }}</td><td>{{ n|mini_md }}</td></tr>{% endfor %}
+  {% for n in st.notes %}<tr><td>{{ n.date }}</td><td>{{ n.text|mini_md }}</td></tr>{% endfor %}
 </table>
 {% else %}<p class="muted">No notes yet.</p>{% endif %}
 {% endblock %}

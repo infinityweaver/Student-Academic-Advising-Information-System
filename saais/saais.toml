@@ -13,6 +13,13 @@ inc_years = 1                 # INC lapses to 5.00 after this many years
 retakes_needing_attention = 3 # this many retakes => red status
 max_units_regular = 24        # unit-load warning threshold in the advising assistant
 
+[year_level]
+# Year level is autocomputed from units earned. Format: "units=label" pairs,
+# ascending, separated by ";". Empty = use the thresholds that ship with the
+# student's curriculum workbook/record.
+# thresholds = "0=1st year;36=2nd year;72=3rd year;110=4th year"
+thresholds = ""
+
 [server]
 host = "127.0.0.1"            # local only; do not expose — the data is PII
 port = 8000
