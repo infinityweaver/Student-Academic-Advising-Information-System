@@ -29,15 +29,16 @@
     <h3 style="margin-top:0">Edit profile</h3>
     <form method="post" action="{{ url_for('edit_profile', sid=st.sid) }}">
       <input type="hidden" name="rec_hash" value="{{ st.rec_hash }}">
-      <p><label>Email<br><input type="text" name="email" value="{{ st.fields.get('Email', '') }}" style="width:100%"></label></p>
-      <p><label>Contact<br><input type="text" name="contact" value="{{ st.fields.get('Contact', '') }}" style="width:100%"></label></p>
+      <p><label>Email<br><input type="text" name="email" value="{{ st.email }}" style="width:100%"></label></p>
+      <p><label>Contact<br><input type="text" name="contact" value="{{ st.contact }}" style="width:100%"></label></p>
       <p><label>Curriculum<br>
         <select name="curriculum">
+          <option value="" {{ "selected" if not st.curriculum_key }}>Autodetect{% if st.an %} (currently: {{ cur_labels().get(st.an.curkey, st.an.curkey) }}){% endif %}</option>
           {% for key, label in cur_labels().items() %}
-          <option value="{{ key }}" {{ "selected" if st.an and st.an.curkey == key }}>{{ label }}</option>
+          <option value="{{ key }}" {{ "selected" if st.curriculum_key == key }}>{{ label }}</option>
           {% endfor %}
         </select></label>
-        <span class="muted">(explicit per-student field — e.g. shifters on the new curriculum)</span></p>
+        <span class="muted">(explicit per-student field — e.g. shifters on the new curriculum; leave on Autodetect to infer from grades)</span></p>
       <button>Save</button>
       <p class="muted" style="font-size:.82rem">Saving writes <code>record.json</code> (previous version backed up). Derived values are recomputed, never stored.</p>
     </form>

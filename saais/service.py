@@ -78,8 +78,10 @@ def merge_scrape(rec, data):
     """Merge a registrar scrape into a record: update matching (term, code)
     grade entries, append new ones; refresh name/program. Returns #changed."""
     changed = 0
-    rec["student"]["name"] = data["student"]["name"]
-    rec["student"]["program"] = data["student"]["program"]
+    for k in ("name", "program"):
+        if rec["student"].get(k) != data["student"][k]:
+            rec["student"][k] = data["student"][k]
+            changed += 1
     for g in data["grades"]:
         mine = records.find_grade(rec, g["academic_year"], g["semester"], g["course_code"])
         if mine is None:
@@ -117,10 +119,13 @@ def intake(store: Store, text, folder_name):
     if os.sep in folder_name or "/" in folder_name or ".." in folder_name:
         raise ValueError("Folder name must be a plain name, not a path.")
     fpath = os.path.join(paths.ACTIVE_DIR, folder_name)
-    if os.path.exists(paths.record_path(fpath)):
-        raise ValueError(f"{folder_name} already has a record.json.")
+    if os.path.exists(fpath):
+        raise ValueError(
+            f"{folder_name} already exists. If it is a legacy folder, run "
+            "`python -m saais.migrate` to migrate it; otherwise choose a different name.")
     if store.get(sid):
         raise ValueError(f"A record for {sid} already exists.")
+    backups.backup(paths.raw_path(sid))     # back up any prior scrape before overwriting
     scrape.save(data)
     s = data["student"]
     rec = records.new_record(sid, s["name"], s["program"],
@@ -144,8 +149,7 @@ def graduate(store: Store, st, year):
         raise ValueError(f"{dest} already exists.")
     st.record["student"]["status"] = "graduated"
     st.record["student"]["graduated_year"] = int(year)
-    records.save(st.folder_path, st.record)
-    backups.backup(paths.record_path(st.folder_path))
+    records.save(st.folder_path, st.record)   # backs up the pre-graduation record
     shutil.move(st.folder_path, dest)
     store.invalidate()
     sync_roster(store)
@@ -229,7 +233,8 @@ def render_md(store: Store, st):
 def export_md(store: Store, sids, out_dir=None):
     """Generate MD files for the selected students. Returns (zip_bytes, names);
     if out_dir is given the files are also written there."""
-    chosen = [st for st in store.all_students() if st.sid in set(sids)]
+    wanted = set(sids)
+    chosen = [st for st in store.all_students() if st.sid in wanted]
     if not chosen:
         raise ValueError("No students selected.")
     if out_dir:

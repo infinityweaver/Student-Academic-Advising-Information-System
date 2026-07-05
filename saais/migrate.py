@@ -94,9 +94,14 @@ def migrate_folder(status, folder, folder_path, force=False):
     if status == "graduated":
         year = os.path.basename(os.path.dirname(folder_path))
         rec["student"]["graduated_year"] = int(year) if year.isdigit() else None
+    if status == "inactive":
+        # v1 folders carry no machine-readable reason; validate() requires one.
+        rec["student"]["inactive_reason"] = "other"
 
     for i, (when, text) in enumerate(reversed(notes), start=1):  # oldest → newest
-        rec["notes"].append({"id": i, "date": when, "text": text})
+        # v1 escaped pipes as "\|" in the notes table; store the raw text so the
+        # exporter (student_md.render) doesn't double-escape into "\\|".
+        rec["notes"].append({"id": i, "date": when, "text": text.replace("\\|", "|")})
     rec["meta"]["note_seq"] = len(notes)
 
     records.save(folder_path, rec)   # backs up any existing record.json first
