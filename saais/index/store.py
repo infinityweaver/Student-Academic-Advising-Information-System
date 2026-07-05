@@ -42,6 +42,12 @@ class Student:
         return self.record["student"]["status"] if self.record else self.status_dir
 
     @property
+    def curriculum_key(self):
+        """The explicitly stored curriculum key, or None when autodetecting.
+        Distinct from an['curkey'], which is the *resolved* curriculum."""
+        return self.record["student"].get("curriculum") if self.record else None
+
+    @property
     def notes(self):
         return records.notes_newest_first(self.record) if self.record else []
 

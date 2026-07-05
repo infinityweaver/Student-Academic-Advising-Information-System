@@ -78,8 +78,10 @@ def merge_scrape(rec, data):
     """Merge a registrar scrape into a record: update matching (term, code)
     grade entries, append new ones; refresh name/program. Returns #changed."""
     changed = 0
-    rec["student"]["name"] = data["student"]["name"]
-    rec["student"]["program"] = data["student"]["program"]
+    for k in ("name", "program"):
+        if rec["student"].get(k) != data["student"][k]:
+            rec["student"][k] = data["student"][k]
+            changed += 1
     for g in data["grades"]:
         mine = records.find_grade(rec, g["academic_year"], g["semester"], g["course_code"])
         if mine is None:
@@ -145,8 +147,7 @@ def graduate(store: Store, st, year):
         raise ValueError(f"{dest} already exists.")
     st.record["student"]["status"] = "graduated"
     st.record["student"]["graduated_year"] = int(year)
-    records.save(st.folder_path, st.record)
-    backups.backup(paths.record_path(st.folder_path))
+    records.save(st.folder_path, st.record)   # backs up the pre-graduation record
     shutil.move(st.folder_path, dest)
     store.invalidate()
     sync_roster(store)
