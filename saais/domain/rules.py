@@ -132,6 +132,10 @@ def analyze(data, curriculum, config, curkey=None):
     grades = data["grades"]
     if curkey not in curriculum:
         curkey = detect_curriculum(grades)
+    if curkey not in curriculum:
+        if not curriculum:
+            raise ValueError("No curricula defined — add or import one first.")
+        curkey = next(iter(curriculum))
     cur = curriculum[curkey]
 
     # group attempts per base code, chronological

@@ -71,7 +71,7 @@ class Student:
         out = {
             "Student No.": s["student_number"],
             "Program": s["program"],
-            "Curriculum": curriculum.CURRICULUM_LABEL.get(
+            "Curriculum": curriculum.labels().get(
                 self.an["curkey"] if self.an else s.get("curriculum"),
                 s.get("curriculum") or "—"),
             "Entered": f"AY {s['entered']}" if s.get("entered") else "—",
@@ -116,12 +116,9 @@ class Store:
         return st
 
     def _cache_key(self, folder_path):
-        parts = []
         rp = paths.record_path(folder_path)
-        parts.append(os.path.getmtime(rp) if os.path.exists(rp) else None)
-        for cp in paths.CURRICULA.values():
-            parts.append(os.path.getmtime(cp) if os.path.exists(cp) else None)
-        return tuple(parts)
+        return (os.path.getmtime(rp) if os.path.exists(rp) else None,
+                curriculum.cache_token())
 
     def invalidate(self, st=None):
         if st is None:

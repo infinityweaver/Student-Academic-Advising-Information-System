@@ -33,8 +33,8 @@
       <p><label>Contact<br><input type="text" name="contact" value="{{ st.contact }}" style="width:100%"></label></p>
       <p><label>Curriculum<br>
         <select name="curriculum">
-          <option value="" {{ "selected" if not st.curriculum_key }}>Autodetect{% if st.an %} (currently: {{ cur_labels[st.an.curkey] }}){% endif %}</option>
-          {% for key, label in cur_labels.items() %}
+          <option value="" {{ "selected" if not st.curriculum_key }}>Autodetect{% if st.an %} (currently: {{ cur_labels().get(st.an.curkey, st.an.curkey) }}){% endif %}</option>
+          {% for key, label in cur_labels().items() %}
           <option value="{{ key }}" {{ "selected" if st.curriculum_key == key }}>{{ label }}</option>
           {% endfor %}
         </select></label>
@@ -64,7 +64,7 @@
 </ul>
 {% endif %}
 
-<h2>Curriculum checklist <span class="muted" style="font-weight:normal">({{ cur_labels[st.an.curkey] }})</span></h2>
+<h2>Curriculum checklist <span class="muted" style="font-weight:normal">({{ cur_labels().get(st.an.curkey, st.an.curkey) }})</span></h2>
 {% set ns = namespace(yt=None) %}
 {% for item in st.an.checklist %}
   {% set r = item.row %}

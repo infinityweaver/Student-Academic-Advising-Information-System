@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Add curriculum{% endblock %}
+{% block content %}
+<h1>Add curriculum</h1>
+<p class="muted">Sections and courses are <strong>locked after creation</strong> (students' checklists
+depend on them) — only the effective years stay editable. Double-check before saving.</p>
+
+<form method="post" class="box">
+  <p style="display:flex; gap:.8rem; flex-wrap:wrap;">
+    <label>Program<br><input type="text" name="program" value="BSCS" size="8" required></label>
+    <label>Effective from (year)<br><input type="number" name="start" placeholder="2026" required></label>
+    <label>To (year; leave empty for “present”)<br><input type="number" name="end"></label>
+  </p>
+  <p><label>Year-level thresholds <span class="muted">(optional; "units=label" pairs separated by ";",
+     ending with the total units — e.g. <code>0=1st year;52=2nd year;98=3rd year;140=4th year;168=Graduating</code>.
+     Empty = quartiles of total units.)</span><br>
+     <input type="text" name="thresholds" style="width:100%"></label></p>
+
+  <h2>Sections</h2>
+  <p class="muted">Each section = semester + year level. One course per line:
+  <code>code | title | units | prerequisite</code> (prerequisite optional).</p>
+
+  <div id="sections">
+    <fieldset class="box">
+      <legend>Section 1</legend>
+      <p>
+        <label>Year level <input type="number" name="sec0_year" value="1" min="1" max="6" size="3"></label>
+        <label>Semester
+          <select name="sec0_term">
+            <option value="1st">1st Semester</option>
+            <option value="2nd">2nd Semester</option>
+            <option value="Midyear">Midyear</option>
+          </select></label>
+      </p>
+      <textarea name="sec0_courses" rows="8" style="width:100%"
+                placeholder="CSIT 101 | Introduction to Computing | 3 | None&#10;Math 111 | Calculus I | 3 |"></textarea>
+    </fieldset>
+  </div>
+  <p class="no-print"><button type="button" class="secondary" onclick="addSection()">＋ Add section</button></p>
+  <p><button>Create curriculum</button>
+     <a href="{{ url_for('curricula') }}"><button type="button" class="secondary">Cancel</button></a></p>
+</form>
+
+<script>
+let n = 1;
+function addSection() {
+  const div = document.createElement("fieldset");
+  div.className = "box";
+  div.innerHTML = `
+    <legend>Section ${n + 1}</legend>
+    <p>
+      <label>Year level <input type="number" name="sec${n}_year" value="1" min="1" max="6" size="3"></label>
+      <label>Semester
+        <select name="sec${n}_term">
+          <option value="1st">1st Semester</option>
+          <option value="2nd">2nd Semester</option>
+          <option value="Midyear">Midyear</option>
+        </select></label>
+    </p>
+    <textarea name="sec${n}_courses" rows="8" style="width:100%"
+              placeholder="code | title | units | prerequisite"></textarea>`;
+  document.getElementById("sections").appendChild(div);
+  n++;
+}
+</script>
+{% endblock %}

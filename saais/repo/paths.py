@@ -10,6 +10,7 @@ GRADUATED_DIR = os.path.join(STUDENTS_DIR, "graduated")
 INACTIVE_DIR = os.path.join(STUDENTS_DIR, "inactive")
 RAW_DIR = os.path.join(ROOT, "raw")
 CURRICULUM_DIR = os.path.join(ROOT, "reference", "curriculum")
+CURRICULA_DIR = os.path.join(ROOT, "data", "curricula")
 ROSTER_MD = os.path.join(ROOT, "ROSTER.md")
 BACKUPS_DIR = os.path.join(ROOT, ".backups")
 

@@ -13,8 +13,9 @@
   <label>Curriculum
     <select name="cur">
       <option value="">all</option>
-      <option value="2018" {{ "selected" if f_cur == "2018" }}>2018–2024</option>
-      <option value="2025" {{ "selected" if f_cur == "2025" }}>2025–present</option>
+      {% for key, label in cur_labels().items() %}
+      <option value="{{ key }}" {{ "selected" if f_cur == key }}>{{ label }}</option>
+      {% endfor %}
     </select>
   </label>
   <label>Year level
