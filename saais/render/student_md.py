@@ -36,6 +36,8 @@ def render(rec, an, source="record"):
         L.append(f"| Curriculum | {CURRICULUM_LABEL.get(an['curkey'], an['curkey'])} |")
     elif s.get("curriculum"):
         L.append(f"| Curriculum | {CURRICULUM_LABEL.get(s['curriculum'], s['curriculum'])} |")
+    else:
+        L.append("| Curriculum | Autodetect (no grades yet) |")
     L.append(f"| Entered | {('AY ' + s['entered']) if s.get('entered') else '—'} |")
     L.append(f"| Email | {s.get('email') or '—'} |")
     L.append(f"| Contact | {s.get('contact') or '—'} |")

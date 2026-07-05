@@ -119,8 +119,10 @@ def intake(store: Store, text, folder_name):
     if os.sep in folder_name or "/" in folder_name or ".." in folder_name:
         raise ValueError("Folder name must be a plain name, not a path.")
     fpath = os.path.join(paths.ACTIVE_DIR, folder_name)
-    if os.path.exists(paths.record_path(fpath)):
-        raise ValueError(f"{folder_name} already has a record.json.")
+    if os.path.exists(fpath):
+        raise ValueError(
+            f"{folder_name} already exists. If it is a legacy folder, run "
+            "`python -m saais.migrate` to migrate it; otherwise choose a different name.")
     if store.get(sid):
         raise ValueError(f"A record for {sid} already exists.")
     backups.backup(paths.raw_path(sid))     # back up any prior scrape before overwriting
