@@ -283,12 +283,13 @@ def create_app():
     @app.route("/curricula")
     def curricula():
         rows = []
+        counts = service.curriculum_ref_counts(store)
         for cid, cur in sorted(curriculum.load_all().items(),
                                key=lambda kv: (kv[1]["program"], kv[1]["effective_start"])):
             rows.append({"cur": cur, "label": curriculum.label(cur),
                          "n_courses": len(cur["courses"]),
                          "units": curriculum.total_units(cur),
-                         "n_students": len(service.curriculum_refs(store, cid))})
+                         "n_students": counts.get(cid, 0)})
         return render_template("curricula.html", rows=rows)
 
     @app.route("/curricula/new", methods=["GET", "POST"])

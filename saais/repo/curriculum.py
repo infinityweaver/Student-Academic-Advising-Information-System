@@ -136,12 +136,13 @@ def load_all():
         cur["courses"] = flatten(cur)
         cur["thresholds"] = [tuple(t) for t in cur["thresholds"]]
         out[cur["id"]] = cur
-    if not out:
-        # Fallback for repos that haven't run the migration: parse the legacy
-        # workbooks in memory so the app stays usable.
-        for key, xp in paths.CURRICULA.items():
-            if os.path.exists(xp):
-                out[key] = _legacy(key, xp)
+    # Keep the v1 keys resolvable even once other curricula exist: seed any
+    # legacy key a migration hasn't written as JSON yet from its workbook, so
+    # student records referencing "2018"/"2025" keep resolving after someone
+    # creates or imports an unrelated curriculum.
+    for key, xp in paths.CURRICULA.items():
+        if key not in out and os.path.exists(xp):
+            out[key] = _legacy(key, xp)
     _cache["token"] = token
     _cache["data"] = out
     return out

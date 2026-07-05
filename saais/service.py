@@ -163,6 +163,17 @@ def curriculum_refs(store: Store, cid):
             if st.record and st.record["student"].get("curriculum") == cid]
 
 
+def curriculum_ref_counts(store: Store):
+    """{cid: number of students explicitly referencing it} in one roster pass —
+    avoids re-scanning all students once per curriculum."""
+    counts = {}
+    for st in store.all_students():
+        cid = st.record and st.record["student"].get("curriculum")
+        if cid:
+            counts[cid] = counts.get(cid, 0) + 1
+    return counts
+
+
 def create_curriculum(program, start, end, sections, thresholds=None, cid=None):
     from datetime import date
     program = (program or "").strip().upper()
