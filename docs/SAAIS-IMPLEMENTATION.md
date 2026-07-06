@@ -72,7 +72,7 @@ remains open.
   intake → grade encoding (final grade + INC completion) → advising slip →
   mark-graduated exercised end-to-end on a synthetic student, then removed.
 
-## 2026-07-06 — UI/UX refactor (Issue #1 follow-up)
+## 2026-07-06 — UI/UX refactor (Issue #1 follow-up) + AI advising chat enabled locally
 
 All v2 features (Dashboard, Curriculum, Students, Reports, advising notes CRUD,
 AI chat) had shipped, but the top nav was still one flat list of 8 links and the
@@ -104,3 +104,12 @@ two issues, both fixed in the same PR before merge:
 2. This file — the note said the pass "only touches templates/CSS", which was
    inaccurate since it also updated this file and `README.md`; reworded to say
    templates/CSS *and documentation*.
+
+Separately, on this same date: `[ai].enabled` flipped to `true` in
+`saais/saais.toml` and the local backend set up on this machine:
+[Ollama](https://ollama.com) installed, `qwen2.5:7b` (the configured default
+model, ~4.7 GB) pulled via `ollama pull qwen2.5:7b`. No code changes —
+`saais/domain/ai_chat.py` already validated `[ai].host` is local-only and
+persisted transcripts inside the student's own `record.json`; this just turns
+the feature on and documents the setup (README §"AI advising chat (optional)")
+for anyone else reusing this repo.

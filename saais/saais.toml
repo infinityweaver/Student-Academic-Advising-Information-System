@@ -30,7 +30,7 @@ port = 8000
 # with the model pulled (`ollama pull qwen2.5:7b`). Only ever talks to `host`
 # below — no other network calls are made, and chat transcripts are stored
 # only inside that student's own record.json.
-enabled = false
+enabled = true
 host = "http://127.0.0.1:11434"
 model = "qwen2.5:7b"
 timeout = 30                  # seconds to wait for a reply
