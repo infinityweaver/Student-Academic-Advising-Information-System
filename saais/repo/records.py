@@ -96,8 +96,9 @@ def validate(rec):
         if not isinstance(rec.setdefault(key, []), list):
             raise RecordError(f"'{key}' must be a list.")
     for i, item in enumerate(rec["checklist"].values()):
-        if item.get("status") not in CHECKLIST_STATUSES:
-            raise RecordError(f"checklist entries need a status in {CHECKLIST_STATUSES}.")
+        # status is None when only remarks are stored (no manual override)
+        if item.get("status") is not None and item.get("status") not in CHECKLIST_STATUSES:
+            raise RecordError(f"checklist entries need a status in {CHECKLIST_STATUSES} or null.")
     return rec
 
 
@@ -158,3 +159,65 @@ def find_grade(rec, ay, sem, course_code):
         if (g["academic_year"], g["semester"], g["course_code"]) == (ay, sem, course_code):
             return g
     return None
+
+
+def delete_grade(rec, ay, sem, course_code):
+    """Remove a matching grade entry in place. Raises if none matches."""
+    g = find_grade(rec, ay, sem, course_code)
+    if g is None:
+        raise RecordError(f"No grade entry for {course_code} in {ay} {sem}.")
+    rec["grades"].remove(g)
+
+
+def set_lifecycle(rec, status, reason=None, graduated_year=None):
+    """Set student.status (+ inactive_reason / graduated_year); re-validated
+    by the caller's records.save()."""
+    if status not in STATUSES:
+        raise RecordError(f"status must be one of {STATUSES}.")
+    s = rec["student"]
+    s["status"] = status
+    s["inactive_reason"] = reason if status == "inactive" else None
+    s["graduated_year"] = int(graduated_year) if status == "graduated" and graduated_year else None
+
+
+def set_checklist_status(rec, code, status):
+    """Manual override of a checklist row's status; `status` of None/""
+    clears the override (falls back to computed) without touching remarks.
+    Anything not listed here is derived from grades."""
+    status = status or None
+    if status is not None and status not in CHECKLIST_STATUSES:
+        raise RecordError(f"checklist status must be one of {CHECKLIST_STATUSES}.")
+    item = rec["checklist"].get(code)
+    if item is None:
+        if status is None:
+            return  # nothing to clear
+        item = rec["checklist"][code] = {"status": None, "remarks": []}
+    item["status"] = status
+    item.setdefault("remarks", [])
+    if item["status"] is None and not item["remarks"]:
+        del rec["checklist"][code]  # fully cleared, don't keep an empty entry
+
+
+def add_checklist_remark(rec, code, text):
+    """Remarks are independent of the manual status override — adding one
+    does not itself set/replace record["checklist"][code]["status"]."""
+    text = " ".join(text.split())
+    if not text:
+        raise RecordError("Empty remark.")
+    item = rec["checklist"].setdefault(code, {"status": None, "remarks": []})
+    item.setdefault("remarks", []).append(text)
+
+
+def delete_checklist_remark(rec, code, idx):
+    item = rec["checklist"].get(code)
+    if item is None or not (0 <= idx < len(item.get("remarks", []))):
+        raise RecordError(f"No remark #{idx} for {code}.")
+    del item["remarks"][idx]
+    if item["status"] is None and not item["remarks"]:
+        del rec["checklist"][code]  # fully cleared, don't keep an empty entry
+
+
+def add_attachment(rec, name, mimetype):
+    from datetime import date as _date
+    rec["attachments"].append({"name": name, "type": mimetype or "application/octet-stream",
+                               "added": _date.today().isoformat()})

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ st.name }}{% endblock %}
+{% block content %}
+<h1>Edit advisee — {{ st.name }}</h1>
+<p class="muted"><a href="{{ url_for('student', sid=st.sid) }}">← Back to record</a></p>
+
+<div class="box">
+  <h3 style="margin-top:0">Profile</h3>
+  <form method="post" action="{{ url_for('student_edit', sid=st.sid) }}">
+    <input type="hidden" name="action" value="profile">
+    <input type="hidden" name="rec_hash" value="{{ st.rec_hash }}">
+    <p><label>Student ID<br><input type="text" name="student_number" value="{{ st.sid }}" required></label></p>
+    <p><label>Email<br><input type="text" name="email" value="{{ st.email }}" style="width:100%"></label></p>
+    <p><label>Contact<br><input type="text" name="contact" value="{{ st.contact }}" style="width:100%"></label></p>
+    <p><label>Curriculum<br>
+      <select name="curriculum" {{ "disabled" if st.status_key == "graduated" }}>
+        <option value="" {{ "selected" if not st.curriculum_key }}>Autodetect{% if st.an %} (currently: {{ cur_labels().get(st.an.curkey, st.an.curkey) }}){% endif %}</option>
+        {% for key, label in cur_labels().items() %}
+        <option value="{{ key }}" {{ "selected" if st.curriculum_key == key }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      {% if st.status_key == "graduated" %}<span class="muted">(locked — graduated)</span>{% endif %}</label></p>
+    <button>Save profile</button>
+  </form>
+</div>
+
+{% if st.status_key != "graduated" %}
+<div class="box">
+  <h3 style="margin-top:0">Active / inactive</h3>
+  <form method="post" action="{{ url_for('student_edit', sid=st.sid) }}">
+    <input type="hidden" name="action" value="active">
+    <input type="hidden" name="rec_hash" value="{{ st.rec_hash }}">
+    <p>
+      <label><input type="radio" name="active" value="active" {{ "checked" if st.status_key == "active" }}> Active</label>
+      <label><input type="radio" name="active" value="inactive" {{ "checked" if st.status_key == "inactive" }}> Inactive</label>
+    </p>
+    <p><label>Reason (required when inactive)<br>
+      <select name="reason">
+        <option value="">—</option>
+        {% for r in reasons %}
+        <option value="{{ r }}" {{ "selected" if st.record.student.inactive_reason == r }}>{{ r }}</option>
+        {% endfor %}
+      </select></label></p>
+    <button>Save status</button>
+  </form>
+</div>
+{% endif %}
+
+<div class="box">
+  <h3 style="margin-top:0">Graduation</h3>
+  {% set confirm_msg = ("Move " ~ st.name ~ " back to students/active/?") if st.status_key == "graduated" else ("Mark " ~ st.name ~ " graduated and move to students/graduated/?") %}
+  <form method="post" action="{{ url_for('student_edit', sid=st.sid) }}"
+        onsubmit="return confirm('{{ confirm_msg }}');">
+    <input type="hidden" name="action" value="graduated">
+    <input type="hidden" name="rec_hash" value="{{ st.rec_hash }}">
+    {% if st.status_key == "graduated" %}
+      <input type="hidden" name="graduated" value="no">
+      <p>Currently graduated ({{ st.record.student.graduated_year }}).</p>
+      <button class="secondary">Reinstate as active</button>
+    {% else %}
+      <input type="hidden" name="graduated" value="yes">
+      <p><label>Graduation year<br><input type="text" name="year" size="6" value="{{ today()[:4] }}"></label></p>
+      <button class="secondary">🎓 Mark graduated</button>
+    {% endif %}
+  </form>
+</div>
+
+<div class="box danger">
+  <h3 style="margin-top:0">Delete advisee</h3>
+  <p class="muted">Removes <code>students/…/{{ st.folder }}/</code>. A full copy is kept under
+  <code>.backups/</code> — this is SAAIS's only undo mechanism (no trash/soft-delete).</p>
+  <form method="post" action="{{ url_for('student_delete', sid=st.sid) }}"
+        onsubmit="return confirm('Delete {{ st.name }}? A full backup will be kept under .backups/.');">
+    <button class="danger">🗑 Delete advisee</button>
+  </form>
+</div>
+{% endblock %}

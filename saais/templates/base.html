@@ -16,7 +16,8 @@
     <a href="{{ url_for('curricula') }}">Curricula</a>
     <a href="{{ url_for('flags_board') }}">Flags</a>
     <a href="{{ url_for('import_scrape') }}">Import scrape</a>
-    <a href="{{ url_for('intake') }}">New advisee</a>
+    <a href="{{ url_for('student_new') }}">＋ Add advisee</a>
+    <a href="{{ url_for('intake') }}">New advisee (from scrape)</a>
   </nav>
   <span class="term">Current term: {{ cfg.term.current_sem }} {{ cfg.term.current_ay }}</span>
 </header>

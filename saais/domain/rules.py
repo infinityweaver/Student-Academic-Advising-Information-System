@@ -13,6 +13,10 @@ SEM_ORDER = {"First Semester": 1, "Second Semester": 2, "Summer": 3, "Mid Year":
 FLAG_ORDER = {"STOPOUT": 0, "DELINQ": 1, "INC": 2, "RETAKE": 3}
 FLAG_ICON = {"RETAKE": "❌", "INC": "⏳", "DELINQ": "📉", "STOPOUT": "🚪"}
 
+# Manual checklist overrides (record["checklist"][code]["status"]) — phase 3.3
+CHECKLIST_STATUS_ICON = {"passed": "✅ Passed (manual)", "pending": "⬜ Pending (manual)",
+                         "enrolled": "✳️ Enrolled (manual)"}
+
 
 def term_key(ay, sem):
     return (ay, SEM_ORDER.get(sem, 9))
@@ -269,10 +273,15 @@ def analyze(data, curriculum, config, curkey=None):
     }
 
 
-def row_status(item, passed_codes, pass_threshold=3.0):
-    """Checklist row rendering: (status label, 'grade · when', prior attempts)."""
+def row_status(item, passed_codes, pass_threshold=3.0, override=None):
+    """Checklist row rendering: (status label, 'grade · when', prior attempts).
+    `override` is record["checklist"].get(code) — a manual status override that
+    wins over the computed label but doesn't change the grade/when/history
+    columns, which stay derived from the grade entries."""
     recs = item["recs"]
     if not recs:
+        if override and override.get("status") in CHECKLIST_STATUS_ICON:
+            return (CHECKLIST_STATUS_ICON[override["status"]], "", "")
         return ("⬜ Not taken", "", "")
     bc = base_code(item["row"]["code"])
     last = recs[-1]
@@ -296,4 +305,6 @@ def row_status(item, passed_codes, pass_threshold=3.0):
         st = "⏳ INC"
     else:
         st = "❌ Failed" if kind in ("num", "na") else "❌ Dropped"
+    if override and override.get("status") in CHECKLIST_STATUS_ICON:
+        st = CHECKLIST_STATUS_ICON[override["status"]]
     return (st, f"{disp} · {when}", hist)

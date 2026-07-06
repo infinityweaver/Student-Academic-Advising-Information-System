@@ -4,6 +4,9 @@
 <h1>Roster</h1>
 
 <form class="filters" method="get">
+  <label>Search
+    <input type="text" name="q" value="{{ f_q }}" placeholder="name or student ID…">
+  </label>
   <label>Status
     <select name="status">
       <option value="">all</option>
@@ -30,12 +33,13 @@
     </select>
   </label>
   <button>Apply</button>
+  <a href="{{ url_for('student_new') }}"><button type="button" class="secondary">＋ Add advisee</button></a>
 </form>
 
 <form method="post" action="{{ url_for('export_md') }}" hx-boost="false">
 <table>
   <tr><th class="no-print"><input type="checkbox" onclick="this.closest('table').querySelectorAll('input[name=sids]').forEach(c => c.checked = this.checked)" title="Select all"></th>
-      <th>Student</th><th>ID</th><th>Curriculum</th><th>Year level</th><th>Units</th><th>GWA</th><th>Status</th><th>Flags</th></tr>
+      <th>Student</th><th>ID</th><th>Curriculum</th><th>Year level</th><th>Units</th><th>GWA</th><th>Status</th><th>Flags</th><th class="no-print">Actions</th></tr>
   {% for st in rows %}
   <tr>
     <td class="no-print">{% if st.sid %}<input type="checkbox" name="sids" value="{{ st.sid }}">{% endif %}</td>
@@ -52,6 +56,11 @@
     <td colspan="5" class="muted">no raw grade data{% if st.error %} — {{ st.error }}{% endif %}</td>
     <td>—</td>
     {% endif %}
+    <td class="no-print">
+      {% if st.sid %}
+      <a href="{{ url_for('student_edit', sid=st.sid) }}"><button type="button" class="secondary">Edit</button></a>
+      {% endif %}
+    </td>
   </tr>
   {% endfor %}
 </table>
@@ -62,5 +71,6 @@
 </p>
 </form>
 <p class="muted">{{ rows|length }} shown. MD files are generated from the JSON records on demand —
-they are an export format, not the database.</p>
+they are an export format, not the database. Use a row's Edit button to change ID,
+email, contact, curriculum, active/inactive/graduated status, or to delete the advisee.</p>
 {% endblock %}

@@ -43,6 +43,7 @@ textarea { width: 100%; }
 button { background: var(--accent-2); color: #fff; border: 0; border-radius: 5px; padding: .4rem .9rem; cursor: pointer; }
 button:hover { background: var(--accent); }
 button.secondary { background: #e7ecea; color: var(--ink); }
+button.danger { background: var(--red); color: #fff; }
 
 .muted { color: var(--muted); }
 .pill { display: inline-block; border-radius: 999px; padding: 0 .55em; font-size: .82rem; border: 1px solid var(--line); background: #fff; }

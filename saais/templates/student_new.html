@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Add advisee{% endblock %}
+{% block content %}
+<h1>Add advisee</h1>
+<p class="muted">Scaffolds <code>students/active/&lt;Folder&gt;/record.json</code> with no
+grade entries yet. Defaults: 1st year, 0 units earned, GWA —, no last term with
+records. Use <a href="{{ url_for('intake') }}">New advisee (from scrape)</a> instead
+if you already have a registrar scrape.</p>
+
+<form method="post" class="box">
+  <p><label>Folder name (as in <code>students/active/</code>)<br>
+     <input type="text" name="folder" placeholder="Surname, Firstname" style="width:22rem" required></label></p>
+  <p><label>Full name<br>
+     <input type="text" name="name" placeholder="SURNAME, FIRSTNAME MI" style="width:22rem" required></label></p>
+  <p><label>Student ID<br>
+     <input type="text" name="sid" placeholder="26-1-00001" required></label></p>
+  <p><label>Program<br>
+     <input type="text" name="program" placeholder="BSCS" required></label></p>
+  <p><label>Curriculum<br>
+    <select name="curriculum">
+      <option value="">Autodetect once grades exist</option>
+      {% for key, label in cur_labels().items() %}
+      <option value="{{ key }}">{{ label }}</option>
+      {% endfor %}
+    </select></label></p>
+  <p><label>Starting year enrolled<br>
+     <input type="text" name="entered" placeholder="2026-2027" style="width:10rem"></label></p>
+  <p><label>Email<br><input type="text" name="email" style="width:22rem"></label></p>
+  <p><label>Contact<br><input type="text" name="contact" style="width:22rem"></label></p>
+  <button>Create advisee</button>
+</form>
+{% endblock %}

@@ -7,42 +7,18 @@
 </p>
 
 <div class="no-print" style="margin:.6rem 0 1rem; display:flex; gap:.6rem; flex-wrap:wrap;">
+  <a href="{{ url_for('student_edit', sid=st.sid) }}"><button class="secondary">✏ Edit advisee</button></a>
   {% if st.an %}
   <a href="{{ url_for('advise', sid=st.sid) }}"><button>📝 Enrollment advising</button></a>
-  <a href="{{ url_for('encode_grades', sid=st.sid) }}"><button class="secondary">🖊 Encode grades</button></a>
   {% endif %}
-  <form class="inline" method="post" action="{{ url_for('graduate', sid=st.sid) }}"
-        onsubmit="return confirm('Move {{ st.name }} to students/graduated/' + this.year.value + '/?');">
-    <input type="text" name="year" size="5" value="{{ today()[:4] }}" title="Graduation year">
-    <button class="secondary">🎓 Mark graduated</button>
-  </form>
+  <a href="{{ url_for('encode_grades', sid=st.sid) }}"><button class="secondary">🖊 Encode grades</button></a>
 </div>
 
-<div class="grid2">
-  <div class="box">
-    <h3 style="margin-top:0">Profile</h3>
-    <table>
-      {% for k, v in st.fields.items() %}<tr><th style="width:40%">{{ k }}</th><td>{{ v }}</td></tr>{% endfor %}
-    </table>
-  </div>
-  <div class="box no-print">
-    <h3 style="margin-top:0">Edit profile</h3>
-    <form method="post" action="{{ url_for('edit_profile', sid=st.sid) }}">
-      <input type="hidden" name="rec_hash" value="{{ st.rec_hash }}">
-      <p><label>Email<br><input type="text" name="email" value="{{ st.email }}" style="width:100%"></label></p>
-      <p><label>Contact<br><input type="text" name="contact" value="{{ st.contact }}" style="width:100%"></label></p>
-      <p><label>Curriculum<br>
-        <select name="curriculum">
-          <option value="" {{ "selected" if not st.curriculum_key }}>Autodetect{% if st.an %} (currently: {{ cur_labels().get(st.an.curkey, st.an.curkey) }}){% endif %}</option>
-          {% for key, label in cur_labels().items() %}
-          <option value="{{ key }}" {{ "selected" if st.curriculum_key == key }}>{{ label }}</option>
-          {% endfor %}
-        </select></label>
-        <span class="muted">(explicit per-student field — e.g. shifters on the new curriculum; leave on Autodetect to infer from grades)</span></p>
-      <button>Save</button>
-      <p class="muted" style="font-size:.82rem">Saving writes <code>record.json</code> (previous version backed up). Derived values are recomputed, never stored.</p>
-    </form>
-  </div>
+<div class="box">
+  <h3 style="margin-top:0">Profile</h3>
+  <table>
+    {% for k, v in st.fields.items() %}<tr><th style="width:40%">{{ k }}</th><td>{{ v }}</td></tr>{% endfor %}
+  </table>
 </div>
 
 {% if st.error %}<div class="box danger">⚠ {{ st.error }}</div>{% endif %}
@@ -64,22 +40,68 @@
 </ul>
 {% endif %}
 
-<h2>Curriculum checklist <span class="muted" style="font-weight:normal">({{ cur_labels().get(st.an.curkey, st.an.curkey) }})</span></h2>
+<h2 id="checklist">Curriculum checklist <span class="muted" style="font-weight:normal">({{ cur_labels().get(st.an.curkey, st.an.curkey) }})</span></h2>
+<form method="post" action="{{ url_for('save_checklist', sid=st.sid) }}">
+<input type="hidden" name="rec_hash" value="{{ st.rec_hash }}">
 {% set ns = namespace(yt=None) %}
 {% for item in st.an.checklist %}
   {% set r = item.row %}
+  {% set override = st.record.checklist.get(r.code) %}
   {% if (r.year, r.term) != ns.yt %}
     {% if ns.yt is not none %}</table>{% endif %}
     {% set ns.yt = (r.year, r.term) %}
     <h3>Year {{ r.year }} — {{ {"1st": "1st Semester", "2nd": "2nd Semester"}.get(r.term, r.term) }}</h3>
     <table>
-    <tr><th>Course</th><th>Title</th><th>Units</th><th>Prerequisite</th><th>Status</th><th>Grade · When</th><th>Prior attempts</th></tr>
+    <tr><th>Course</th><th>Title</th><th>Units</th><th>Prerequisite</th><th>Status</th><th>Grade · When</th><th>Prior attempts</th><th class="no-print">Manual status</th></tr>
   {% endif %}
   {% set s = row_status(item) %}
   <tr><td>{{ r.code }}</td><td>{{ r.title }}</td><td>{{ "%g"|format(r.units) }}</td><td>{{ r.prereq }}</td>
-      <td>{{ s[0] }}</td><td>{{ s[1] }}</td><td class="muted">{{ s[2] }}</td></tr>
+      <td>{{ s[0] }}</td><td>{{ s[1] }}</td><td class="muted">{{ s[2] }}</td>
+      <td class="no-print">
+        <select name="status_{{ r.code }}">
+          <option value="">— computed —</option>
+          {% for cs in checklist_statuses %}
+          <option value="{{ cs }}" {{ "selected" if override and override.status == cs }}>{{ cs }}</option>
+          {% endfor %}
+        </select>
+      </td></tr>
 {% endfor %}
 {% if st.an.checklist %}</table>{% endif %}
+<p class="no-print"><button>Save checklist</button>
+  <span class="muted" style="font-size:.82rem">Rows set away from "— computed —" store a manual status override; setting a row back to "— computed —" clears its override (any remarks on that row are kept). Everything else stays derived from grades.</span></p>
+</form>
+
+<h3>Checklist remarks</h3>
+<div class="box no-print">
+  <form method="post" action="{{ url_for('add_checklist_remark', sid=st.sid) }}">
+    <input type="hidden" name="rec_hash" value="{{ st.rec_hash }}">
+    <p style="display:flex; gap:.6rem; align-items:center; flex-wrap:wrap;">
+      <input type="text" name="code" placeholder="Course code" size="10" required>
+      <input type="text" name="text" placeholder="Remark…" style="flex:1" required>
+      <button>Add remark</button>
+    </p>
+  </form>
+</div>
+{% set has_remarks = st.record.checklist.values()|selectattr("remarks")|list %}
+{% if has_remarks %}
+<table>
+  <tr><th style="width:8rem">Course</th><th>Remark</th><th class="no-print">Delete</th></tr>
+  {% for code, item in st.record.checklist.items() %}
+    {% for remark in item.get("remarks", []) %}
+    <tr><td>{{ code }}</td><td>{{ remark }}</td>
+        <td class="no-print">
+          <form method="post" action="{{ url_for('delete_checklist_remark', sid=st.sid) }}"
+                onsubmit="return confirm('Delete this remark?');">
+            <input type="hidden" name="rec_hash" value="{{ st.rec_hash }}">
+            <input type="hidden" name="code" value="{{ code }}">
+            <input type="hidden" name="idx" value="{{ loop.index0 }}">
+            <button type="submit" class="secondary">✕</button>
+          </form>
+        </td></tr>
+    {% endfor %}
+  {% endfor %}
+</table>
+{% else %}<p class="muted">No remarks yet.</p>{% endif %}
 
 {% if st.an.extra %}
 <h2>Other courses taken (not matched to checklist)</h2>
@@ -97,10 +119,20 @@
 {% for t in history %}
 <h3>{{ t.label }} — {{ "%g"|format(t.units) }} units{% if t.gwa %} · term GWA {{ "%.2f"|format(t.gwa) }}{% endif %}</h3>
 <table>
-  <tr><th>Course</th><th>Title</th><th>Units</th><th>Midterm</th><th>Final</th><th>Completion</th></tr>
+  <tr><th>Course</th><th>Title</th><th>Units</th><th>Midterm</th><th>Final</th><th>Completion</th><th class="no-print">Delete</th></tr>
   {% for g in t.recs %}
   <tr><td>{{ g.course_code }}</td><td>{{ g.course_title.title() }}</td><td>{{ "%g"|format(g.units) }}</td>
-      <td>{{ g.midterm or "—" }}</td><td>{{ g.grade or "—" }}</td><td>{{ g.completion or "—" }}</td></tr>
+      <td>{{ g.midterm or "—" }}</td><td>{{ g.grade or "—" }}</td><td>{{ g.completion or "—" }}</td>
+      <td class="no-print">
+        <form method="post" action="{{ url_for('delete_grade', sid=st.sid) }}"
+              onsubmit="return confirm('Delete this grade entry for {{ g.course_code }}?');">
+          <input type="hidden" name="rec_hash" value="{{ st.rec_hash }}">
+          <input type="hidden" name="ay" value="{{ g.academic_year }}">
+          <input type="hidden" name="sem" value="{{ g.semester }}">
+          <input type="hidden" name="code" value="{{ g.course_code }}">
+          <button type="submit" class="secondary">🗑</button>
+        </form>
+      </td></tr>
   {% endfor %}
 </table>
 {% endfor %}
@@ -126,4 +158,27 @@
   {% for n in st.notes %}<tr><td>{{ n.date }}</td><td>{{ n.text|mini_md }}</td></tr>{% endfor %}
 </table>
 {% else %}<p class="muted">No notes yet.</p>{% endif %}
+
+<h2 id="attachments">Attachments</h2>
+<div class="box no-print">
+  <form method="post" action="{{ url_for('add_attachment', sid=st.sid) }}" enctype="multipart/form-data">
+    <input type="hidden" name="rec_hash" value="{{ st.rec_hash }}">
+    <p style="display:flex; gap:.6rem; align-items:center; flex-wrap:wrap;">
+      <input type="file" name="file" required>
+      <button>Attach file</button>
+    </p>
+  </form>
+  <form method="post" action="{{ url_for('open_attachments_folder', sid=st.sid) }}">
+    <button class="secondary" type="submit">📂 Open folder</button>
+  </form>
+</div>
+{% if st.record.attachments %}
+<table>
+  <tr><th>Name</th><th>Type</th><th>Added</th></tr>
+  {% for a in st.record.attachments %}
+  <tr><td><a href="{{ url_for('get_attachment', sid=st.sid, name=a.name) }}">{{ a.name }}</a></td>
+      <td>{{ a.type }}</td><td>{{ a.added }}</td></tr>
+  {% endfor %}
+</table>
+{% else %}<p class="muted">No attachments yet.</p>{% endif %}
 {% endblock %}

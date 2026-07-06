@@ -38,15 +38,6 @@ def add_note(store: Store, st, note, expected_hash=None, when=None):
     _write(store, st)
 
 
-def edit_profile(store: Store, st, email, contact, curkey, expected_hash=None):
-    _check_hash(st, expected_hash)
-    s = st.record["student"]
-    s["email"] = email.strip()
-    s["contact"] = contact.strip()
-    s["curriculum"] = curkey or None
-    _write(store, st)
-
-
 def encode_grades(store: Store, st, updates, expected_hash=None):
     """updates: [{'academic_year','semester','course_code','course_title','units',
     'midterm','grade','completion'}] — existing (term, code) entries are updated,
@@ -108,11 +99,7 @@ def import_scrape(store: Store, text):
     return sid, None
 
 
-def intake(store: Store, text, folder_name):
-    """New advisee: students/active/<Folder>/record.json seeded from a scrape
-    (plus an audit copy of the scrape in raw/)."""
-    data = scrape.parse_text(text)
-    sid = data["student"]["student_number"]
+def _validate_folder_name(folder_name):
     folder_name = folder_name.strip().rstrip(".")
     if not folder_name:
         raise ValueError("Folder name is required (e.g. \"Surname, Firstname\").")
@@ -123,6 +110,15 @@ def intake(store: Store, text, folder_name):
         raise ValueError(
             f"{folder_name} already exists. If it is a legacy folder, run "
             "`python -m saais.migrate` to migrate it; otherwise choose a different name.")
+    return folder_name, fpath
+
+
+def intake(store: Store, text, folder_name):
+    """New advisee: students/active/<Folder>/record.json seeded from a scrape
+    (plus an audit copy of the scrape in raw/)."""
+    data = scrape.parse_text(text)
+    sid = data["student"]["student_number"]
+    folder_name, fpath = _validate_folder_name(folder_name)
     if store.get(sid):
         raise ValueError(f"A record for {sid} already exists.")
     backups.backup(paths.raw_path(sid))     # back up any prior scrape before overwriting
@@ -137,6 +133,74 @@ def intake(store: Store, text, folder_name):
     return sid, folder_name
 
 
+def create_advisee(store: Store, folder_name, sid, name, program, curkey, entered, email, contact):
+    """Manual "Add advisee" (3.1) — no scrape needed. Defaults: 1st year,
+    0 units earned, GWA —, no last term (all derived once grades exist)."""
+    sid = (sid or "").strip()
+    name = (name or "").strip()
+    program = (program or "").strip().upper()
+    if not sid:
+        raise ValueError("Student ID is required.")
+    if not name:
+        raise ValueError("Name is required.")
+    if not program:
+        raise ValueError("Program is required (e.g. BSCS).")
+    folder_name, fpath = _validate_folder_name(folder_name)
+    if store.get(sid):
+        raise ValueError(f"A record for {sid} already exists.")
+    rec = records.new_record(sid, name, program, curriculum=curkey or None,
+                             entered=(entered or "").strip(),
+                             email=(email or "").strip(), contact=(contact or "").strip())
+    records.save(fpath, rec)
+    store.invalidate()
+    sync_roster(store)
+    return sid, folder_name
+
+
+def edit_advisee(store: Store, st, sid, email, contact, curkey, expected_hash=None):
+    """3.2 edit: student ID / email / contact / curriculum. Curriculum is
+    locked once the student has graduated."""
+    _check_hash(st, expected_hash)
+    s = st.record["student"]
+    sid = (sid or "").strip()
+    if not sid:
+        raise ValueError("Student ID is required.")
+    if sid != s["student_number"]:
+        other = store.get(sid)
+        if other and other.folder_path != st.folder_path:
+            raise ValueError(f"Student ID {sid} is already used by {other.name}.")
+        s["student_number"] = sid
+    if s["status"] == "graduated" and (curkey or None) != s.get("curriculum"):
+        raise ValueError("Curriculum is locked after graduation.")
+    s["email"] = email.strip()
+    s["contact"] = contact.strip()
+    s["curriculum"] = curkey or None
+    _write(store, st)
+
+
+def set_active(store: Store, st, active, reason=None, expected_hash=None):
+    """Toggle active/inactive (3.2); moves the folder between
+    students/active/ and students/inactive/. A reason is required to
+    deactivate. No-op (besides the reason update) if already in that state
+    and the folder is already in the right place."""
+    _check_hash(st, expected_hash)
+    if st.record["student"]["status"] == "graduated":
+        raise ValueError("Cannot toggle active/inactive on a graduated student.")
+    if not active and reason not in records.INACTIVE_REASONS:
+        raise ValueError(f"A reason is required to deactivate — one of {records.INACTIVE_REASONS}.")
+    dest_dir = paths.ACTIVE_DIR if active else paths.INACTIVE_DIR
+    dest = os.path.join(dest_dir, st.folder)
+    records.set_lifecycle(st.record, "active" if active else "inactive",
+                          reason=None if active else reason)
+    records.save(st.folder_path, st.record)   # backs up the pre-toggle record
+    if os.path.abspath(dest) != os.path.abspath(st.folder_path):
+        if os.path.exists(dest):
+            raise ValueError(f"{dest} already exists.")
+        shutil.move(st.folder_path, dest)
+    store.invalidate()
+    sync_roster(store)
+
+
 def graduate(store: Store, st, year):
     """Mark graduated and move the folder to students/graduated/<year>/."""
     year = str(year).strip()
@@ -147,13 +211,91 @@ def graduate(store: Store, st, year):
     dest = os.path.join(dest_dir, st.folder)
     if os.path.exists(dest):
         raise ValueError(f"{dest} already exists.")
-    st.record["student"]["status"] = "graduated"
-    st.record["student"]["graduated_year"] = int(year)
+    records.set_lifecycle(st.record, "graduated", graduated_year=year)
     records.save(st.folder_path, st.record)   # backs up the pre-graduation record
     shutil.move(st.folder_path, dest)
     store.invalidate()
     sync_roster(store)
     return dest
+
+
+def ungraduate(store: Store, st, expected_hash=None):
+    """Reverse graduate(): moves the folder back to students/active/ and
+    clears graduated_year."""
+    _check_hash(st, expected_hash)
+    if st.record["student"]["status"] != "graduated":
+        raise ValueError(f"{st.name} is not graduated.")
+    dest = os.path.join(paths.ACTIVE_DIR, st.folder)
+    if os.path.exists(dest):
+        raise ValueError(f"{dest} already exists.")
+    records.set_lifecycle(st.record, "active")
+    records.save(st.folder_path, st.record)
+    shutil.move(st.folder_path, dest)
+    store.invalidate()
+    sync_roster(store)
+    return dest
+
+
+def delete_advisee(store: Store, st):
+    """Hard delete: the folder is backed up whole (backups.backup_tree) —
+    SAAIS's only undo mechanism, matching how curriculum delete/graduate
+    already rely on backups instead of a soft-delete/trash state."""
+    backups.backup_tree(st.folder_path)
+    shutil.rmtree(st.folder_path)
+    store.invalidate()
+    sync_roster(store)
+
+
+# ------------------------------------------------------------------ checklist
+def save_checklist(store: Store, st, statuses, expected_hash=None):
+    """statuses: {course_code: status}. Bulk-applies and writes once. A blank
+    status clears a previously-saved override back to "computed" (remarks,
+    if any, are untouched) rather than being skipped."""
+    _check_hash(st, expected_hash)
+    changed = 0
+    for code, status in statuses.items():
+        status = status or None
+        before = st.record["checklist"].get(code, {}).get("status")
+        if status == before:
+            continue
+        records.set_checklist_status(st.record, code, status)
+        changed += 1
+    if changed:
+        _write(store, st)
+    return changed
+
+
+def add_checklist_remark(store: Store, st, code, text, expected_hash=None):
+    _check_hash(st, expected_hash)
+    records.add_checklist_remark(st.record, code, text)
+    _write(store, st)
+
+
+def delete_checklist_remark(store: Store, st, code, idx, expected_hash=None):
+    _check_hash(st, expected_hash)
+    records.delete_checklist_remark(st.record, code, idx)
+    _write(store, st)
+
+
+def delete_grade_entry(store: Store, st, ay, sem, code, expected_hash=None):
+    _check_hash(st, expected_hash)
+    records.delete_grade(st.record, ay, sem, code)
+    _write(store, st)
+
+
+# ------------------------------------------------------------------ attachments
+def add_attachment(store: Store, st, filename, mimetype, stream, expected_hash=None):
+    from werkzeug.utils import secure_filename
+    _check_hash(st, expected_hash)
+    name = secure_filename(filename)
+    if not name:
+        raise ValueError("Choose a file to attach.")
+    dest = os.path.join(st.folder_path, name)
+    if os.path.exists(dest):
+        raise ValueError(f"{name} is already attached — rename the file and try again.")
+    stream.save(dest)
+    records.add_attachment(st.record, name, mimetype)
+    _write(store, st)
 
 
 # ------------------------------------------------------------------ curricula
