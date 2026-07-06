@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% block title %}{{ st.name }}{% endblock %}
 {% block content %}
+<p class="no-print"><a href="{{ url_for('roster') }}">&larr; Back to roster</a></p>
 <h1>{{ st.name }} <span class="pill">{{ st.status }}</span></h1>
 <p class="muted">
   <code>students/{{ st.folder_path.replace("\\", "/").split("/students/")[-1] }}/record.json</code>
 </p>
 
 <div class="no-print" style="margin:.6rem 0 1rem; display:flex; gap:.6rem; flex-wrap:wrap;">
-  <a href="{{ url_for('student_edit', sid=st.sid) }}"><button class="secondary">✏ Edit advisee</button></a>
   {% if st.an %}
   <a href="{{ url_for('advise', sid=st.sid) }}"><button>📝 Enrollment advising</button></a>
   {% endif %}
@@ -15,7 +15,18 @@
   {% if cfg.ai.enabled %}
   <a href="{{ url_for('chat', sid=st.sid) }}"><button class="secondary">🤖 AI advising chat</button></a>
   {% endif %}
+  <a href="{{ url_for('student_edit', sid=st.sid) }}"><button class="secondary">✏ Edit advisee</button></a>
 </div>
+
+{% if st.an %}
+<nav class="subnav no-print">
+  <a href="#flags">🚩 Flags</a>
+  <a href="#checklist">✅ Checklist</a>
+  <a href="#grades">🗒 Grades</a>
+  <a href="#notes">🗒 Notes</a>
+  <a href="#attachments">📎 Attachments</a>
+</nav>
+{% endif %}
 
 <div class="box">
   <h3 style="margin-top:0">Profile</h3>
@@ -27,7 +38,7 @@
 {% if st.error %}<div class="box danger">⚠ {{ st.error }}</div>{% endif %}
 
 {% if st.an %}
-<h2>Flags</h2>
+<h2 id="flags">Flags</h2>
 {% if st.an.flags %}
 <ul class="flags">
   {% for kind, txt in st.an.flags %}<li>{{ flag_icon[kind] }} {{ txt|mini_md }}</li>{% endfor %}
@@ -118,7 +129,7 @@
 </table>
 {% endif %}
 
-<h2>Grade history by term</h2>
+<h2 id="grades">Grade history by term</h2>
 {% for t in history %}
 <h3>{{ t.label }} — {{ "%g"|format(t.units) }} units{% if t.gwa %} · term GWA {{ "%.2f"|format(t.gwa) }}{% endif %}</h3>
 <table>

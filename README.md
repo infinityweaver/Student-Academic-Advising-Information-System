@@ -16,6 +16,7 @@ Markdown file per student.
 - [Repository layout](#repository-layout)
 - [Installation](#installation)
 - [How to use the system](#how-to-use-the-system)
+- [AI advising chat (optional)](#ai-advising-chat-optional)
 - [Each student file contains](#each-student-file-contains)
 - [Grading rules (VSU)](#grading-rules-vsu)
 - [Reusing this for your own advisees](#reusing-this-for-your-own-advisees)
@@ -109,17 +110,32 @@ your own.
 
 ## How to use the system
 
+### Navigation
+
+The top nav is grouped into four areas so every feature stays a click or two away:
+
+- **🏠 Dashboard** — the home page (status counts, INC countdown, stop-outs, statistics).
+- **👥 Students ▾** — a dropdown with Roster, Flags board, ＋ Add advisee, New advisee
+  (from scrape), and Import scrape.
+- **📚 Curricula** — first-class curriculum records.
+- **📊 Reports** — the flexible report generator.
+
+The current page is highlighted in the nav; on narrow screens the nav collapses
+behind a ☰ button. The student page additionally has a sticky quick-jump bar
+(Flags · Checklist · Grades · Notes · Attachments) since it is the longest page.
+
 ### The pages
 
 | Page | What it's for |
 |---|---|
-| **Home** | Status counts, ⏳ INC deadline countdown (1-year lapse rule), 🚪 stop-out list |
-| **Roster** | All advisees — sortable/filterable by status, curriculum, year level, GWA, flags |
+| **Dashboard** (Home) | Status counts, ⏳ INC deadline countdown (1-year lapse rule), 🚪 stop-out list, per-program statistics, recent graduates |
+| **Roster** (Students ▾) | All advisees — sortable/filterable by status, curriculum, year level, GWA, flags |
+| **Flags board** (Students ▾) | Every 🔴/🟡 item across advisees, grouped: INCs, retakes, delinquency, stop-outs |
 | **Curricula** | First-class curriculum records — add, import from xlsx, edit effective years, delete |
-| **Flags** | Every 🔴/🟡 item across advisees, grouped: INCs, retakes, delinquency, stop-outs |
-| **Student page** | Profile, flags, curriculum checklist, grade history by term, advising notes |
-| **Import scrape** | Drop/paste a fresh registrar JSON for an existing advisee |
-| **New advisee** | Scaffold the folder + `record.json` for a new advisee from their grade JSON |
+| **Reports** | Filter by status/curriculum/year level/GWA/flags/date range; on-screen table or CSV export |
+| **Student page** | Profile, flags, curriculum checklist, grade history by term, advising notes CRUD, attachments, AI chat |
+| **Import scrape** (Students ▾) | Drop/paste a fresh registrar JSON for an existing advisee |
+| **New advisee** (Students ▾) | Scaffold the folder + `record.json` for a new advisee, by hand or from their grade JSON |
 
 ### During an advising session
 
@@ -154,6 +170,50 @@ your own.
 Still supported — `record.json` is plain, indented JSON. SAAIS picks up hand
 edits on the next page load, refuses stale browser writes over them, and backs
 up the previous version before every write of its own.
+
+## AI advising chat (optional)
+
+Each student page can offer an **🤖 AI advising chat** — a local model that answers
+questions grounded only in that one student's own record (profile, flags, recent
+advising notes). It never sees other students' data, and every exchange is saved
+back into that student's own `record.json` (never a shared/global log). Disabled
+by default; nothing is installed or contacted over the network unless you turn it
+on.
+
+### Prerequisites
+
+1. **Install [Ollama](https://ollama.com/download)** (the local model runtime) and
+   make sure it's running — the installer sets it up as a background service/tray
+   app on Windows, macOS, and Linux.
+2. **Pull a chat-capable model** — the default configured in `saais.toml` is
+   `qwen2.5:7b` (good quality/speed balance; ~4.7 GB download, needs roughly 8 GB
+   of free RAM/VRAM to run comfortably):
+   ```bash
+   ollama pull qwen2.5:7b
+   ```
+   Smaller machine? Use a lighter model (e.g. `ollama pull qwen2.5:3b` or
+   `llama3.2:3b`) and point `model` (below) at whatever you pulled.
+3. **Enable it in [saais/saais.toml](saais/saais.toml)**:
+   ```toml
+   [ai]
+   enabled = true
+   host = "http://127.0.0.1:11434"   # Ollama's default local port — leave as-is
+   model = "qwen2.5:7b"              # must match a model you've pulled
+   timeout = 30                       # seconds to wait for a reply
+   ```
+4. **Restart SAAIS** (`python -m saais` / re-launch `SAAIS.bat`). The **🤖 AI
+   advising chat** button now appears on every student page.
+
+### Notes
+
+- `[ai].host` is validated to be a local address (`127.0.0.1`/`localhost`) before
+  every request — SAAIS refuses to send student data anywhere else, even if the
+  config is edited to point elsewhere by mistake.
+- If Ollama isn't running or the model hasn't been pulled, the chat page shows a
+  clear error instead of failing silently — start/reinstall Ollama and/or
+  `ollama pull <model>` and try again.
+- Larger models answer better but need more RAM/VRAM and reply more slowly; the
+  `timeout` setting controls how long SAAIS waits before giving up on a reply.
 
 ## Each student record (and its MD export) contains
 
@@ -222,6 +282,43 @@ instead, precisely so PII can never end up in a public git history. See
 design decisions, and [docs/SAAIS-PLAN.md](docs/SAAIS-PLAN.md) for the original plan.
 
 ## Changelog
+
+### 2.0.0 — 2026-07-05 – 2026-07-06
+
+- **v2 rewrite** (Issue [#1](https://github.com/infinityweaver/Student-Academic-Advising-Information-System/issues/1),
+  PRs [#2](https://github.com/infinityweaver/Student-Academic-Advising-Information-System/pull/2),
+  [#4](https://github.com/infinityweaver/Student-Academic-Advising-Information-System/pull/4),
+  [#5](https://github.com/infinityweaver/Student-Academic-Advising-Information-System/pull/5),
+  [#6](https://github.com/infinityweaver/Student-Academic-Advising-Information-System/pull/6)):
+  JSON records (`students/<status>/<Folder>/record.json`) replace per-student
+  Markdown as the source of truth, with a one-time migration from the legacy
+  `.md`/`.xlsx`/`raw/*.json` files; Markdown becomes an export-only format
+  (Roster → select students → *Export MD*). Curricula are now first-class editable
+  records (`data/curricula/<id>.json`) with an xlsx import path. Full Students CRUD
+  (add/edit/delete, checklist overrides + remarks, grade-entry deletion, file
+  attachments). Dashboard rebuilt with per-program statistics and a recent-graduates
+  list, alongside the existing INC countdown and stop-out list. New flexible Reports
+  page (filter by status/curriculum/year level/GWA/flags/date range, CSV export).
+  Advising notes are full CRUD (was append-only), plus an optional local AI advising
+  chat scoped to a single student's own records (shipped **disabled by default**;
+  see [AI advising chat (optional)](#ai-advising-chat-optional)).
+- **UI/UX refactor** (Issue [#1](https://github.com/infinityweaver/Student-Academic-Advising-Information-System/issues/1),
+  PR [#7](https://github.com/infinityweaver/Student-Academic-Advising-Information-System/pull/7))
+  for intuitive, efficient access to every v2 feature: the top nav
+  is now grouped into *Dashboard · Students (Roster, Flags board, Add advisee, New
+  advisee from scrape, Import scrape) · Curricula · Reports*, with active-page
+  highlighting and a collapsible mobile menu; the Dashboard gained a quick-actions bar
+  to the most common tasks; the (long) student page gained a sticky quick-jump sub-nav
+  (Flags · Checklist · Grades · Notes · Attachments) and a back-to-roster link.
+  Addressed Copilot review feedback on PR #7: two nav template expressions were
+  missing an explicit `else` branch (risked a `TemplateSyntaxError`), and an
+  implementation-notes sentence understated the docs-only files it touched.
+- **AI advising chat enabled locally** (this machine): installed
+  [Ollama](https://ollama.com) and pulled the configured default model
+  (`qwen2.5:7b`), then flipped `[ai].enabled = true` in
+  [saais/saais.toml](saais/saais.toml). This is a per-install config choice, not a
+  change to the shipped default — a fresh clone still starts with AI chat off; see
+  the prerequisites above to enable it elsewhere.
 
 ### 1.0.0 — 2026-07-04
 

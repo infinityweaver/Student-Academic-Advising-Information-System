@@ -71,3 +71,45 @@ remains open.
 - Live: all pages served; note add (with backup + conflict rejection on stale hash),
   intake → grade encoding (final grade + INC completion) → advising slip →
   mark-graduated exercised end-to-end on a synthetic student, then removed.
+
+## 2026-07-06 — UI/UX refactor (Issue #1 follow-up) + AI advising chat enabled locally
+
+All v2 features (Dashboard, Curriculum, Students, Reports, advising notes CRUD,
+AI chat) had shipped, but the top nav was still one flat list of 8 links and the
+student page — the busiest page, with flags, checklist, grade history, notes,
+attachments, and chat all on one URL — had no way to jump between sections. This
+pass changes only templates/CSS and documentation (`saais/templates/base.html`,
+`saais/templates/home.html`, `saais/templates/student.html`,
+`saais/static/style.css`, this file, and `README.md`); no routes, schemas, or
+domain logic changed.
+
+- **Grouped nav**: `Dashboard · Students ▾ (Roster, Flags board, Add advisee, New
+  advisee from scrape, Import scrape) · Curricula · Reports` — matches the four
+  features from Issue #1 instead of a flat link list. Active page is highlighted;
+  narrow viewports collapse the nav behind a ☰ toggle.
+- **Dashboard quick actions**: one-click buttons to the most common next steps
+  (open roster, add advisee, import scrape, flags board, curricula, reports).
+- **Student page sub-nav**: a sticky quick-jump bar (Flags · Checklist · Grades ·
+  Notes · Attachments) plus a back-to-roster link, since the page is long.
+- No files removed by this pass — a repo-wide check found no unused tracked files
+  (`git ls-files` was reviewed; `saais/repo/md_doc.py` still backs the one-time v1
+  migration in `saais/migrate.py` and is kept).
+
+Tracked in Issue #1, shipped in PR #7. Copilot's automated review on PR #7 flagged
+two issues, both fixed in the same PR before merge:
+1. `saais/templates/base.html` — the `navlink` macro and the Students dropdown
+   `<summary>` used `{{ 'active' if <cond> }}`, an inline Jinja conditional
+   expression with no `else`, which raises `TemplateSyntaxError` in strict Jinja
+   configurations. Fixed to `{{ 'active' if <cond> else '' }}` in both spots.
+2. This file — the note said the pass "only touches templates/CSS", which was
+   inaccurate since it also updated this file and `README.md`; reworded to say
+   templates/CSS *and documentation*.
+
+Separately, on this same date: `[ai].enabled` flipped to `true` in
+`saais/saais.toml` and the local backend set up on this machine:
+[Ollama](https://ollama.com) installed, `qwen2.5:7b` (the configured default
+model, ~4.7 GB) pulled via `ollama pull qwen2.5:7b`. No code changes —
+`saais/domain/ai_chat.py` already validated `[ai].host` is local-only and
+persisted transcripts inside the student's own `record.json`; this just turns
+the feature on and documents the setup (README §"AI advising chat (optional)")
+for anyone else reusing this repo.
