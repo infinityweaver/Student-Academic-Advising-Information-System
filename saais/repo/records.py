@@ -158,3 +158,53 @@ def find_grade(rec, ay, sem, course_code):
         if (g["academic_year"], g["semester"], g["course_code"]) == (ay, sem, course_code):
             return g
     return None
+
+
+def delete_grade(rec, ay, sem, course_code):
+    """Remove a matching grade entry in place. Raises if none matches."""
+    g = find_grade(rec, ay, sem, course_code)
+    if g is None:
+        raise RecordError(f"No grade entry for {course_code} in {ay} {sem}.")
+    rec["grades"].remove(g)
+
+
+def set_lifecycle(rec, status, reason=None, graduated_year=None):
+    """Set student.status (+ inactive_reason / graduated_year); re-validated
+    by the caller's records.save()."""
+    if status not in STATUSES:
+        raise RecordError(f"status must be one of {STATUSES}.")
+    s = rec["student"]
+    s["status"] = status
+    s["inactive_reason"] = reason if status == "inactive" else None
+    s["graduated_year"] = int(graduated_year) if status == "graduated" and graduated_year else None
+
+
+def set_checklist_status(rec, code, status):
+    """Manual override of a checklist row's status; anything not listed here
+    is derived from grades. Preserves any existing remarks."""
+    if status not in CHECKLIST_STATUSES:
+        raise RecordError(f"checklist status must be one of {CHECKLIST_STATUSES}.")
+    item = rec["checklist"].setdefault(code, {"status": status, "remarks": []})
+    item["status"] = status
+    item.setdefault("remarks", [])
+
+
+def add_checklist_remark(rec, code, text):
+    text = " ".join(text.split())
+    if not text:
+        raise RecordError("Empty remark.")
+    item = rec["checklist"].setdefault(code, {"status": "pending", "remarks": []})
+    item.setdefault("remarks", []).append(text)
+
+
+def delete_checklist_remark(rec, code, idx):
+    item = rec["checklist"].get(code)
+    if item is None or not (0 <= idx < len(item.get("remarks", []))):
+        raise RecordError(f"No remark #{idx} for {code}.")
+    del item["remarks"][idx]
+
+
+def add_attachment(rec, name, mimetype):
+    from datetime import date as _date
+    rec["attachments"].append({"name": name, "type": mimetype or "application/octet-stream",
+                               "added": _date.today().isoformat()})

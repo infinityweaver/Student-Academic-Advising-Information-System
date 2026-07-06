@@ -27,3 +27,16 @@ def backup(*file_paths):
         shutil.copy2(fp, dest)
         copied.append(dest)
     return copied
+
+
+def backup_tree(dir_path):
+    """Copy a whole directory into .backups/<timestamp>/<repo-relative-path>/
+    before a destructive delete (e.g. removing an advisee's folder). Returns
+    the destination path, or None if dir_path doesn't exist."""
+    if not dir_path or not os.path.isdir(dir_path):
+        return None
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    rel = os.path.relpath(dir_path, paths.ROOT)
+    dest = os.path.join(paths.BACKUPS_DIR, stamp, rel)
+    shutil.copytree(dir_path, dest)
+    return dest

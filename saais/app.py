@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """Flask routes for SAAIS. Local single-user app — binds to 127.0.0.1 only."""
 import io
+import os
 import re
 from datetime import date, datetime
 
 from flask import (Flask, abort, flash, redirect, render_template, request,
-                   send_file, url_for)
+                   send_file, send_from_directory, url_for)
 from markupsafe import Markup, escape
 
 from . import config as config_mod
@@ -77,11 +78,13 @@ def create_app():
         f_status = request.args.get("status", "")
         f_cur = request.args.get("cur", "")
         f_year = request.args.get("year", "")
+        f_q = request.args.get("q", "").strip().lower()
         years = sorted({st.an["year_level"] for st in students if st.an})
         rows = [st for st in students
                 if (not f_status or st.status.startswith(f_status))
                 and (not f_cur or (st.an and st.an["curkey"] == f_cur))
-                and (not f_year or (st.an and st.an["year_level"] == f_year))]
+                and (not f_year or (st.an and st.an["year_level"] == f_year))
+                and (not f_q or f_q in st.name.lower() or f_q in (st.sid or "").lower())]
         sort = request.args.get("sort", "name")
         keyers = {
             "name": lambda s: rules.strip_accents(s.name).upper(),
@@ -92,7 +95,8 @@ def create_app():
         }
         rows.sort(key=keyers.get(sort, keyers["name"]))
         return render_template("roster.html", rows=rows, years=years,
-                               f_status=f_status, f_cur=f_cur, f_year=f_year, sort=sort)
+                               f_status=f_status, f_cur=f_cur, f_year=f_year,
+                               f_q=f_q, sort=sort)
 
     @app.route("/flags")
     def flags_board():
@@ -123,7 +127,11 @@ def create_app():
                     "gwa": (num / den) if den else None,
                 })
         return render_template("student.html", st=st, history=history,
-                               row_status=lambda item: rules.row_status(item, st.an["passed"]) if st.an else None)
+                               row_status=lambda item: rules.row_status(
+                                   item, st.an["passed"],
+                                   override=st.record["checklist"].get(item["row"]["code"])
+                               ) if st.an else None,
+                               checklist_statuses=records.CHECKLIST_STATUSES)
 
     # ------------------------------------------------------------- writes
     @app.post("/student/<sid>/note")
@@ -138,25 +146,145 @@ def create_app():
             flash(f"⚠ {e}")
         return redirect(url_for("student", sid=sid) + "#notes")
 
-    @app.post("/student/<sid>/profile")
-    def edit_profile(sid):
+    # ------------------------------------------------------------- advisee CRUD
+    @app.route("/students/new", methods=["GET", "POST"])
+    def student_new():
+        if request.method == "POST":
+            try:
+                sid, folder = service.create_advisee(
+                    store, request.form.get("folder", ""), request.form.get("sid", ""),
+                    request.form.get("name", ""), request.form.get("program", ""),
+                    request.form.get("curriculum") or None, request.form.get("entered", ""),
+                    request.form.get("email", ""), request.form.get("contact", ""))
+                flash(f"Created students/active/{folder}/ for {sid}.")
+                return redirect(url_for("student", sid=sid))
+            except ValueError as e:
+                flash(f"⚠ {e}")
+        return render_template("student_new.html")
+
+    @app.route("/student/<sid>/edit", methods=["GET", "POST"])
+    def student_edit(sid):
+        st = get_student_or_404(sid)
+        if request.method == "POST":
+            action = request.form.get("action")
+            try:
+                if action == "profile":
+                    service.edit_advisee(store, st, request.form.get("student_number", ""),
+                                        request.form.get("email", ""), request.form.get("contact", ""),
+                                        request.form.get("curriculum") or None,
+                                        expected_hash=request.form.get("rec_hash"))
+                    flash("Advisee updated.")
+                elif action == "active":
+                    active = request.form.get("active") == "active"
+                    service.set_active(store, st, active, request.form.get("reason") or None,
+                                      expected_hash=request.form.get("rec_hash"))
+                    flash("Status updated.")
+                elif action == "graduated":
+                    if request.form.get("graduated") == "yes":
+                        service.graduate(store, st, request.form.get("year", ""))
+                        flash(f"{st.name} marked graduated.")
+                        return redirect(url_for("roster"))
+                    service.ungraduate(store, st, expected_hash=request.form.get("rec_hash"))
+                    flash(f"{st.name} reinstated as active.")
+                return redirect(url_for("student_edit", sid=sid))
+            except (service.Conflict, ValueError) as e:
+                flash(f"⚠ {e}")
+                return redirect(url_for("student_edit", sid=sid))
+        return render_template("student_edit.html", st=st, reasons=records.INACTIVE_REASONS)
+
+    @app.post("/student/<sid>/delete")
+    def student_delete(sid):
+        st = get_student_or_404(sid)
+        name = st.name
+        try:
+            service.delete_advisee(store, st)
+            flash(f"{name} deleted (a full backup was kept under .backups/).")
+        except OSError as e:
+            flash(f"⚠ {e}")
+            return redirect(url_for("student_edit", sid=sid))
+        return redirect(url_for("roster"))
+
+    # ------------------------------------------------------------- checklist
+    @app.post("/student/<sid>/checklist")
+    def save_checklist(sid):
+        st = get_student_or_404(sid)
+        statuses = {code[len("status_"):]: v for code, v in request.form.items()
+                   if code.startswith("status_")}
+        try:
+            n = service.save_checklist(store, st, statuses, expected_hash=request.form.get("rec_hash"))
+            flash(f"{n} checklist row(s) updated." if n else "No changes.")
+        except (service.Conflict, ValueError, records.RecordError) as e:
+            flash(f"⚠ {e}")
+        return redirect(url_for("student", sid=sid) + "#checklist")
+
+    @app.post("/student/<sid>/checklist/remark")
+    def add_checklist_remark(sid):
         st = get_student_or_404(sid)
         try:
-            service.edit_profile(store, st, request.form.get("email", ""),
-                                 request.form.get("contact", ""),
-                                 request.form.get("curriculum") or None,
-                                 expected_hash=request.form.get("rec_hash"))
-            flash("Profile updated.")
-        except (service.Conflict, ValueError) as e:
+            service.add_checklist_remark(store, st, request.form.get("code", ""),
+                                        request.form.get("text", ""),
+                                        expected_hash=request.form.get("rec_hash"))
+            flash("Remark added.")
+        except (service.Conflict, ValueError, records.RecordError) as e:
+            flash(f"⚠ {e}")
+        return redirect(url_for("student", sid=sid) + "#checklist")
+
+    @app.post("/student/<sid>/checklist/remark/delete")
+    def delete_checklist_remark(sid):
+        st = get_student_or_404(sid)
+        try:
+            service.delete_checklist_remark(store, st, request.form.get("code", ""),
+                                           int(request.form.get("idx", -1)),
+                                           expected_hash=request.form.get("rec_hash"))
+            flash("Remark deleted.")
+        except (service.Conflict, ValueError, records.RecordError) as e:
+            flash(f"⚠ {e}")
+        return redirect(url_for("student", sid=sid) + "#checklist")
+
+    @app.post("/student/<sid>/grades/delete")
+    def delete_grade(sid):
+        st = get_student_or_404(sid)
+        try:
+            service.delete_grade_entry(store, st, request.form.get("ay", ""),
+                                      request.form.get("sem", ""), request.form.get("code", ""),
+                                      expected_hash=request.form.get("rec_hash"))
+            flash("Grade entry deleted.")
+        except (service.Conflict, ValueError, records.RecordError) as e:
             flash(f"⚠ {e}")
         return redirect(url_for("student", sid=sid))
+
+    # ------------------------------------------------------------- attachments
+    @app.post("/student/<sid>/attachments")
+    def add_attachment(sid):
+        st = get_student_or_404(sid)
+        f = request.files.get("file")
+        try:
+            if not f or not f.filename:
+                raise ValueError("Choose a file to attach.")
+            service.add_attachment(store, st, f.filename, f.mimetype, f)
+            flash(f"Attached {f.filename}.")
+        except (service.Conflict, ValueError) as e:
+            flash(f"⚠ {e}")
+        return redirect(url_for("student", sid=sid) + "#attachments")
+
+    @app.get("/student/<sid>/attachments/<path:name>")
+    def get_attachment(sid, name):
+        st = get_student_or_404(sid)
+        return send_from_directory(st.folder_path, name, as_attachment=False)
+
+    @app.post("/student/<sid>/attachments/open-folder")
+    def open_attachments_folder(sid):
+        st = get_student_or_404(sid)
+        try:
+            os.startfile(st.folder_path)  # noqa — Windows-only, local single-user app
+            flash(f"Opened {st.folder_path}")
+        except (AttributeError, OSError) as e:
+            flash(f"⚠ Could not open the folder automatically — path: {st.folder_path} ({e})")
+        return redirect(url_for("student", sid=sid) + "#attachments")
 
     @app.route("/student/<sid>/grades", methods=["GET", "POST"])
     def encode_grades(sid):
         st = get_student_or_404(sid)
-        if not st.an:
-            flash("⚠ No grade entries — import a scrape first.")
-            return redirect(url_for("student", sid=sid))
         if request.method == "POST":
             form = request.form
             updates = []
@@ -176,10 +304,11 @@ def create_app():
                 return redirect(url_for("student", sid=sid))
             except (service.Conflict, ValueError, records.RecordError) as e:
                 flash(f"⚠ {e}")
-        # rows to offer: current-term in-progress + outstanding INCs
+        # rows to offer: current-term in-progress + outstanding INCs (none yet
+        # for an advisee with no grade entries — just the blank entry row)
         cur_term = (cfg["term"]["current_ay"], cfg["term"]["current_sem"])
-        rows = [g for g in st.an["in_progress"]]
-        inc_codes = {(c, ay, sem) for c, ay, sem, _ in st.an["incs"]}
+        rows = [g for g in st.an["in_progress"]] if st.an else []
+        inc_codes = {(c, ay, sem) for c, ay, sem, _ in st.an["incs"]} if st.an else set()
         for g in st.record["grades"]:
             if (g["course_code"], g["academic_year"], g["semester"]) in inc_codes:
                 rows.append(g)
@@ -207,17 +336,6 @@ def create_app():
                                    max_units=cfg["rules"]["max_units_regular"])
         return render_template("advise.html", st=st, options=options,
                                max_units=cfg["rules"]["max_units_regular"])
-
-    @app.post("/student/<sid>/graduate")
-    def graduate(sid):
-        st = get_student_or_404(sid)
-        try:
-            dest = service.graduate(store, st, request.form.get("year", ""))
-            flash(f"{st.name} moved to {dest}.")
-            return redirect(url_for("home"))
-        except (ValueError, OSError) as e:
-            flash(f"⚠ {e}")
-            return redirect(url_for("student", sid=sid))
 
     @app.route("/import", methods=["GET", "POST"])
     def import_scrape():
