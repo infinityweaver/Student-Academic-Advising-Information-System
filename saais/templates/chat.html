@@ -2,9 +2,10 @@
 {% block title %}AI advising chat · {{ st.name }}{% endblock %}
 {% block content %}
 <h1>AI advising chat — {{ st.name }}</h1>
-<p class="muted">Local model only ({{ cfg.ai.model }} via {{ cfg.ai.host }}). Context is limited to this
-   student's own record; nothing is sent anywhere else, and the transcript is stored only inside this
-   student's own record.json.</p>
+<p class="muted">Local model only ({{ cfg.ai.model }} via {{ cfg.ai.host }}). Context includes this
+   student's full record — profile, flags, curriculum checklist, grade history, and recent advising
+   notes; nothing is sent anywhere else, and the transcript is stored only inside this student's own
+   record.json.</p>
 
 <div class="box">
 {% if st.record.chat %}
@@ -15,11 +16,15 @@
 {% else %}<p class="muted">No messages yet — ask a question about this student below.</p>{% endif %}
 </div>
 
-<form method="post" class="no-print">
+<form method="post" class="no-print" hx-indicator="#chat-thinking" hx-disabled-elt="#chat-send, #chat-message">
   <input type="hidden" name="rec_hash" value="{{ st.rec_hash }}">
   <p style="display:flex; gap:.6rem; align-items:flex-start;">
-    <textarea name="message" rows="3" style="flex:1" placeholder="Ask about eligibility, flags, next steps…" required></textarea>
-    <button>Send</button>
+    <textarea id="chat-message" name="message" rows="3" style="flex:1"
+              placeholder="Ask about eligibility, flags, next steps…" required></textarea>
+    <button id="chat-send">Send</button>
+  </p>
+  <p id="chat-thinking" class="htmx-indicator thinking-indicator" aria-live="polite">
+    <span class="spinner" aria-hidden="true"></span> 🤖 Thinking…
   </p>
 </form>
 <p class="no-print" id="chat-end"><a href="{{ url_for('student', sid=st.sid) }}"><button type="button" class="secondary">Back</button></a></p>

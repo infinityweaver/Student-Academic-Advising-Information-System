@@ -8,9 +8,12 @@ is persisted only inside that student's own record.json (never a shared/global
 log). No other network calls are made from this module.
 """
 import json
+import re
 import urllib.error
 import urllib.request
 from urllib.parse import urlsplit
+
+from . import rules
 
 #: Hostnames considered "this machine" — anything else is refused before any
 #: request is made, so a misconfigured `[ai].host` can never exfiltrate a
@@ -19,10 +22,21 @@ _LOCAL_HOSTNAMES = {"127.0.0.1", "localhost", "::1", "[::1]"}
 
 SYSTEM_PROMPT = (
     "You are an academic advising assistant helping a human adviser think through "
-    "one specific student's situation. Only use the student context provided below; "
-    "do not invent grades, courses, or policies you were not given. Be concise and "
-    "practical, and defer to the adviser's judgment on final decisions."
+    "one specific student's situation. You are given that student's full record below: "
+    "profile, flags, curriculum checklist (with grades and prior attempts), grade "
+    "history by term, courses currently in progress, and recent advising notes. Only "
+    "use the context provided; do not invent grades, courses, or policies you were not "
+    "given. Be concise and practical, and defer to the adviser's judgment on final "
+    "decisions."
 )
+
+_BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
+
+
+def _plain(text):
+    """Strip the **bold**/`code` markdown subset used in flag strings, for a
+    plain-text model context."""
+    return _BOLD_RE.sub(r"\1", text).replace("`", "")
 
 
 class AIError(Exception):
@@ -30,18 +44,77 @@ class AIError(Exception):
 
 
 def build_context(st):
-    """Plain-text summary of one student's record for the model's context window."""
+    """Plain-text summary of one student's *entire* record — profile, flags,
+    curriculum checklist, grade history, in-progress courses, other courses not
+    matched to the checklist, attachments on file, and recent advising notes —
+    for the model's context window."""
     lines = [f"Name: {st.name}", f"Student number: {st.sid}"]
     for k, v in st.fields.items():
         lines.append(f"{k}: {v}")
-    if st.an and st.an.get("flags"):
+
+    an = st.an
+    if an:
+        lines.append("")
         lines.append("Flags:")
-        for kind, txt in st.an["flags"]:
-            lines.append(f"  - [{kind}] {txt}")
+        if an.get("flags"):
+            for kind, txt in an["flags"]:
+                lines.append(f"  - [{kind}] {_plain(txt)}")
+        else:
+            lines.append("  - None")
+
+        if an.get("in_progress"):
+            lines.append("")
+            lines.append(f"Currently enrolled ({rules.short_term(*an['latest_term'])}), "
+                         "no final grade yet:")
+            for g in an["in_progress"]:
+                mid = f" (midterm {g['midterm']})" if g.get("midterm") else ""
+                lines.append(f"  - {g['course_code']} — {g['course_title'].title()}{mid}")
+
+        overrides = st.record.get("checklist", {}) if st.record else {}
+        lines.append("")
+        lines.append("Curriculum checklist (course code, title, units — status; "
+                     "grade · term; prior attempts):")
+        for item in an["checklist"]:
+            row = item["row"]
+            override = overrides.get(row["code"])
+            status, when, hist = rules.row_status(item, an["passed"], override=override)
+            line = f"  - {row['code']} {row['title']} ({row['units']:g}u): {_plain(status)}"
+            if when:
+                line += f" — {when}"
+            if hist:
+                line += f"; prior attempts: {hist}"
+            lines.append(line)
+
+        if an.get("extra"):
+            lines.append("")
+            lines.append("Other courses taken (not matched to the checklist):")
+            for g in an["extra"]:
+                _, _, disp = rules.effective(g)
+                lines.append(f"  - {g['course_code']} {g['course_title'].title()} — {disp} "
+                             f"({rules.short_term(g['academic_year'], g['semester'])})")
+
+        lines.append("")
+        lines.append("Grade history by term:")
+        for (ay, sem), recs in sorted(an["per_term"].items(),
+                                      key=lambda kv: rules.term_key(*kv[0])):
+            lines.append(f"  {rules.short_term(ay, sem)}:")
+            for g in recs:
+                _, _, disp = rules.effective(g)
+                lines.append(f"    - {g['course_code']} {g['course_title'].title()} "
+                             f"({g['units']:g}u): {disp}")
+
+    if st.record and st.record.get("attachments"):
+        lines.append("")
+        lines.append("Attachments on file:")
+        for a in st.record["attachments"]:
+            lines.append(f"  - {a['name']} ({a['type']}), added {a['added']}")
+
     if st.notes:
-        lines.append("Recent advising notes (newest first):")
-        for n in st.notes[:10]:
+        lines.append("")
+        lines.append("Advising notes (newest first):")
+        for n in st.notes[:15]:
             lines.append(f"  - {n['date']}: {n['text']}")
+
     return "\n".join(lines)
 
 

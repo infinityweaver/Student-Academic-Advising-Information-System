@@ -80,6 +80,23 @@ button { background: var(--accent-2); color: #fff; border: 0; border-radius: 5px
 button:hover { background: var(--accent); }
 button.secondary { background: #e7ecea; color: var(--ink); }
 button.danger { background: var(--red); color: #fff; }
+button:disabled, textarea:disabled, input:disabled, select:disabled { opacity: .6; cursor: not-allowed; }
+
+/* htmx request indicator (chat "thinking" state, and any other hx-indicator) —
+   hidden by default, shown while htmx has an in-flight request against it. */
+.htmx-indicator { opacity: 0; pointer-events: none; transition: opacity 120ms ease; }
+.htmx-request.htmx-indicator, .htmx-request .htmx-indicator { opacity: 1; pointer-events: auto; }
+
+.thinking-indicator {
+  display: flex; align-items: center; gap: .5rem; margin: .5rem 0 0;
+  color: var(--muted); font-size: .9rem;
+}
+.spinner {
+  width: 1rem; height: 1rem; border-radius: 50%;
+  border: 2px solid var(--line); border-top-color: var(--accent-2);
+  animation: spin .7s linear infinite; display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .muted { color: var(--muted); }
 .pill { display: inline-block; border-radius: 999px; padding: 0 .55em; font-size: .82rem; border: 1px solid var(--line); background: #fff; }

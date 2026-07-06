@@ -33,4 +33,9 @@ port = 8000
 enabled = true
 host = "http://127.0.0.1:11434"
 model = "qwen2.5:7b"
-timeout = 30                  # seconds to wait for a reply
+timeout = 90                  # seconds to wait for a reply — the prompt now
+                               # includes the student's full record (checklist,
+                               # grade history, etc.), so allow more time than a
+                               # short question would need, especially on CPU-only
+                               # inference or right after the model was unloaded
+                               # (Ollama's default keep_alive) and needs a cold load.
