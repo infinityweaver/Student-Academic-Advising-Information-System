@@ -23,3 +23,14 @@ thresholds = ""
 [server]
 host = "127.0.0.1"            # local only; do not expose — the data is PII
 port = 8000
+
+[ai]
+# Local AI advising chat (Students → a student → Advise → AI advising chat).
+# Disabled by default; requires a local Ollama (https://ollama.com) install
+# with the model pulled (`ollama pull qwen2.5:7b`). Only ever talks to `host`
+# below — no other network calls are made, and chat transcripts are stored
+# only inside that student's own record.json.
+enabled = false
+host = "http://127.0.0.1:11434"
+model = "qwen2.5:7b"
+timeout = 30                  # seconds to wait for a reply

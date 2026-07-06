@@ -57,6 +57,7 @@ def new_record(student_number, name, program, curriculum=None, entered="",
         "checklist": {},    # manual per-course state: {key: {status, remarks: []}}
         "notes": [],        # advising notes: {id, date, text}
         "attachments": [],  # metadata only: {name, type, added}
+        "chat": [],         # AI advising chat transcript: {role, text, when}
         "meta": {"created": today, "updated": today, "note_seq": 0},
     }
 
@@ -92,7 +93,7 @@ def validate(rec):
     for key in ("checklist", "meta"):
         if not isinstance(rec.setdefault(key, {}), dict):
             raise RecordError(f"'{key}' must be an object.")
-    for key in ("notes", "attachments"):
+    for key in ("notes", "attachments", "chat"):
         if not isinstance(rec.setdefault(key, []), list):
             raise RecordError(f"'{key}' must be a list.")
     for i, item in enumerate(rec["checklist"].values()):
@@ -152,6 +153,43 @@ def add_note(rec, text, when=None):
 
 def notes_newest_first(rec):
     return sorted(rec["notes"], key=lambda n: (n.get("date", ""), n.get("id", 0)), reverse=True)
+
+
+def find_note(rec, note_id):
+    for n in rec["notes"]:
+        if n.get("id") == note_id:
+            return n
+    return None
+
+
+def edit_note(rec, note_id, text, when=None):
+    """Update an existing note's text (and optionally its date) in place."""
+    n = find_note(rec, note_id)
+    if n is None:
+        raise RecordError(f"No note #{note_id}.")
+    text = " ".join(text.split())
+    if not text:
+        raise RecordError("Empty note.")
+    n["text"] = text
+    if when:
+        n["date"] = when
+
+
+def delete_note(rec, note_id):
+    n = find_note(rec, note_id)
+    if n is None:
+        raise RecordError(f"No note #{note_id}.")
+    rec["notes"].remove(n)
+
+
+def add_chat_message(rec, role, text, when=None):
+    """Append one turn of the AI advising chat transcript. Stored only in
+    this student's own record.json — never in a shared/global log."""
+    from datetime import datetime as _datetime
+    if role not in ("user", "assistant"):
+        raise RecordError(f"chat role must be 'user' or 'assistant', got {role!r}.")
+    rec["chat"].append({"role": role, "text": text,
+                        "when": when or _datetime.now().isoformat(timespec="seconds")})
 
 
 def find_grade(rec, ay, sem, course_code):
