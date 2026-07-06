@@ -9,7 +9,7 @@ import os
 import shutil
 import zipfile
 
-from .domain import rules
+from .domain import ai_chat, rules
 from .index.store import Store
 from .render import roster_md, student_md
 from .repo import backups, curriculum, paths, records, scrape
@@ -36,6 +36,40 @@ def add_note(store: Store, st, note, expected_hash=None, when=None):
     _check_hash(st, expected_hash)
     records.add_note(st.record, note, when)
     _write(store, st)
+
+
+def edit_note(store: Store, st, note_id, text, expected_hash=None, when=None):
+    _check_hash(st, expected_hash)
+    records.edit_note(st.record, note_id, text, when)
+    _write(store, st)
+
+
+def delete_note(store: Store, st, note_id, expected_hash=None):
+    _check_hash(st, expected_hash)
+    records.delete_note(st.record, note_id)
+    _write(store, st)
+
+
+def ask_ai(store: Store, st, message, cfg, expected_hash=None):
+    """Append the user's message, ask the local AI model for a reply (context
+    strictly limited to this student's own record), append the reply, and
+    persist — the transcript never leaves this student's record.json. The
+    user's message is kept even if the model call fails, so nothing is lost."""
+    _check_hash(st, expected_hash)
+    message = " ".join(message.split())
+    if not message:
+        raise ValueError("Empty message.")
+    # Last N turns only — keeps requests small and avoids context-limit
+    # failures as a transcript grows; read defensively in case a record was
+    # ever hand-edited/partially corrupted.
+    recent = st.record["chat"][-20:]
+    history = [{"role": t.get("role", "user"), "text": t.get("text", "")} for t in recent]
+    records.add_chat_message(st.record, "user", message)
+    try:
+        reply = ai_chat.ask(cfg, st, history, message)
+        records.add_chat_message(st.record, "assistant", reply)
+    finally:
+        _write(store, st)
 
 
 def encode_grades(store: Store, st, updates, expected_hash=None):

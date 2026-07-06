@@ -31,6 +31,15 @@ DEFAULTS = {
         "host": "127.0.0.1",
         "port": 8000,
     },
+    "ai": {
+        # Local AI advising chat (3.4). Off by default — the app works fully
+        # without it. Talks only to the local Ollama endpoint below; nothing
+        # about students is ever sent anywhere else.
+        "enabled": False,
+        "host": "http://127.0.0.1:11434",
+        "model": "qwen2.5:7b",
+        "timeout": 30,
+    },
 }
 
 

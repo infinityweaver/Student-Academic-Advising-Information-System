@@ -12,7 +12,7 @@ from markupsafe import Markup, escape
 
 from . import config as config_mod
 from . import service
-from .domain import advising, rules
+from .domain import advising, ai_chat, rules
 from .index.store import Store
 from .repo import curriculum, records, scrape
 
@@ -259,6 +259,47 @@ def create_app():
         except (service.Conflict, ValueError) as e:
             flash(f"⚠ {e}")
         return redirect(url_for("student", sid=sid) + "#notes")
+
+    @app.post("/student/<sid>/note/edit")
+    def edit_note(sid):
+        st = get_student_or_404(sid)
+        try:
+            service.edit_note(store, st, int(request.form.get("note_id", -1)),
+                              request.form.get("text", ""),
+                              expected_hash=request.form.get("rec_hash"),
+                              when=request.form.get("date") or None)
+            flash("Note updated.")
+        except (service.Conflict, ValueError, records.RecordError) as e:
+            flash(f"⚠ {e}")
+        return redirect(url_for("student", sid=sid) + "#notes")
+
+    @app.post("/student/<sid>/note/delete")
+    def delete_note(sid):
+        st = get_student_or_404(sid)
+        try:
+            service.delete_note(store, st, int(request.form.get("note_id", -1)),
+                                expected_hash=request.form.get("rec_hash"))
+            flash("Note deleted.")
+        except (service.Conflict, ValueError, records.RecordError) as e:
+            flash(f"⚠ {e}")
+        return redirect(url_for("student", sid=sid) + "#notes")
+
+    @app.route("/student/<sid>/chat", methods=["GET", "POST"])
+    def chat(sid):
+        st = get_student_or_404(sid)
+        if not cfg["ai"]["enabled"]:
+            flash("⚠ AI advising chat is disabled — enable [ai] in saais.toml first.")
+            return redirect(url_for("student", sid=sid))
+        if request.method == "POST":
+            try:
+                service.ask_ai(store, st, request.form.get("message", ""), cfg,
+                               expected_hash=request.form.get("rec_hash"))
+            except (service.Conflict, ValueError) as e:
+                flash(f"⚠ {e}")
+            except ai_chat.AIError as e:
+                flash(f"⚠ {e}")
+            return redirect(url_for("chat", sid=sid) + "#chat-end")
+        return render_template("chat.html", st=st)
 
     # ------------------------------------------------------------- advisee CRUD
     @app.route("/students/new", methods=["GET", "POST"])

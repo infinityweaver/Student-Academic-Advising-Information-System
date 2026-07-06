@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}AI advising chat · {{ st.name }}{% endblock %}
+{% block content %}
+<h1>AI advising chat — {{ st.name }}</h1>
+<p class="muted">Local model only ({{ cfg.ai.model }} via {{ cfg.ai.host }}). Context is limited to this
+   student's own record; nothing is sent anywhere else, and the transcript is stored only inside this
+   student's own record.json.</p>
+
+<div class="box">
+{% if st.record.chat %}
+  {% for m in st.record.chat %}
+  <p><strong>{{ "You" if m.role == "user" else "AI" }}:</strong> {{ m.text|mini_md }}
+     <span class="muted" style="font-size:.8rem">({{ m.when }})</span></p>
+  {% endfor %}
+{% else %}<p class="muted">No messages yet — ask a question about this student below.</p>{% endif %}
+</div>
+
+<form method="post" class="no-print">
+  <input type="hidden" name="rec_hash" value="{{ st.rec_hash }}">
+  <p style="display:flex; gap:.6rem; align-items:flex-start;">
+    <textarea name="message" rows="3" style="flex:1" placeholder="Ask about eligibility, flags, next steps…" required></textarea>
+    <button>Send</button>
+  </p>
+</form>
+<p class="no-print" id="chat-end"><a href="{{ url_for('student', sid=st.sid) }}"><button type="button" class="secondary">Back</button></a></p>
+{% endblock %}

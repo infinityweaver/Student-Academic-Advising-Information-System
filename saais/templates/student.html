@@ -12,6 +12,9 @@
   <a href="{{ url_for('advise', sid=st.sid) }}"><button>📝 Enrollment advising</button></a>
   {% endif %}
   <a href="{{ url_for('encode_grades', sid=st.sid) }}"><button class="secondary">🖊 Encode grades</button></a>
+  {% if cfg.ai.enabled %}
+  <a href="{{ url_for('chat', sid=st.sid) }}"><button class="secondary">🤖 AI advising chat</button></a>
+  {% endif %}
 </div>
 
 <div class="box">
@@ -155,7 +158,25 @@
 {% if st.notes %}
 <table>
   <tr><th style="width:8.5rem">Date</th><th>Note</th></tr>
-  {% for n in st.notes %}<tr><td>{{ n.date }}</td><td>{{ n.text|mini_md }}</td></tr>{% endfor %}
+  {% for n in st.notes %}
+  <tr><td>{{ n.date }}</td><td>{{ n.text|mini_md }}</td></tr>
+  <tr class="no-print"><td colspan="2" style="padding:.2rem 0 .6rem">
+    <form method="post" action="{{ url_for('edit_note', sid=st.sid) }}"
+          style="display:flex; gap:.4rem; align-items:center;">
+      <input type="hidden" name="rec_hash" value="{{ st.rec_hash }}">
+      <input type="hidden" name="note_id" value="{{ n.id }}">
+      <input type="date" name="date" value="{{ n.date }}">
+      <input type="text" name="text" value="{{ n.text }}" style="flex:1">
+      <button class="secondary">💾 Save</button>
+    </form>
+    <form method="post" action="{{ url_for('delete_note', sid=st.sid) }}"
+          onsubmit="return confirm('Delete this note?');" style="display:inline">
+      <input type="hidden" name="rec_hash" value="{{ st.rec_hash }}">
+      <input type="hidden" name="note_id" value="{{ n.id }}">
+      <button class="secondary">🗑 Delete</button>
+    </form>
+  </td></tr>
+  {% endfor %}
 </table>
 {% else %}<p class="muted">No notes yet.</p>{% endif %}
 
