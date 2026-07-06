@@ -8,17 +8,27 @@
 <script src="{{ url_for('static', filename='htmx.min.js') }}" defer></script>
 </head>
 <body hx-boost="true">
+{% macro navlink(path, endpoint, label) %}
+<a href="{{ url_for(endpoint) }}" class="{{ 'active' if request.path == path or request.path.startswith(path + '/') }}">{{ label }}</a>
+{% endmacro %}
 <header class="topbar no-print">
   <a class="brand" href="{{ url_for('home') }}">🎓 SAAIS</a>
-  <nav>
-    <a href="{{ url_for('home') }}">Home</a>
-    <a href="{{ url_for('roster') }}">Roster</a>
-    <a href="{{ url_for('curricula') }}">Curricula</a>
-    <a href="{{ url_for('flags_board') }}">Flags</a>
-    <a href="{{ url_for('reports') }}">Reports</a>
-    <a href="{{ url_for('import_scrape') }}">Import scrape</a>
-    <a href="{{ url_for('student_new') }}">＋ Add advisee</a>
-    <a href="{{ url_for('intake') }}">New advisee (from scrape)</a>
+  <button class="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false"
+          onclick="var n=document.getElementById('mainnav'); var open=n.classList.toggle('open'); this.setAttribute('aria-expanded', open);">☰</button>
+  <nav id="mainnav">
+    {{ navlink('/', 'home', '🏠 Dashboard') }}
+    <details class="nav-drop">
+      <summary class="{{ 'active' if request.path.startswith('/student') or request.path.startswith('/roster') or request.path.startswith('/flags') or request.path.startswith('/import') or request.path.startswith('/intake') }}">👥 Students ▾</summary>
+      <div class="nav-drop-menu">
+        <a href="{{ url_for('roster') }}">📋 Roster (all advisees)</a>
+        <a href="{{ url_for('flags_board') }}">🚩 Flags board</a>
+        <a href="{{ url_for('student_new') }}">＋ Add advisee</a>
+        <a href="{{ url_for('intake') }}">📥 New advisee (from scrape)</a>
+        <a href="{{ url_for('import_scrape') }}">📤 Import scrape</a>
+      </div>
+    </details>
+    {{ navlink('/curricula', 'curricula', '📚 Curricula') }}
+    {{ navlink('/reports', 'reports', '📊 Reports') }}
   </nav>
   <span class="term">Current term: {{ cfg.term.current_sem }} {{ cfg.term.current_ay }}</span>
 </header>

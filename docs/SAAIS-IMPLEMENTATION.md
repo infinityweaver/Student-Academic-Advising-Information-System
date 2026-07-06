@@ -71,3 +71,25 @@ remains open.
 - Live: all pages served; note add (with backup + conflict rejection on stale hash),
   intake → grade encoding (final grade + INC completion) → advising slip →
   mark-graduated exercised end-to-end on a synthetic student, then removed.
+
+## 2026-07-06 — UI/UX refactor (Issue #1 follow-up)
+
+All v2 features (Dashboard, Curriculum, Students, Reports, advising notes CRUD,
+AI chat) had shipped, but the top nav was still one flat list of 8 links and the
+student page — the busiest page, with flags, checklist, grade history, notes,
+attachments, and chat all on one URL — had no way to jump between sections. This
+pass only touches templates/CSS (`saais/templates/base.html`,
+`saais/templates/home.html`, `saais/templates/student.html`,
+`saais/static/style.css`); no routes, schemas, or domain logic changed.
+
+- **Grouped nav**: `Dashboard · Students ▾ (Roster, Flags board, Add advisee, New
+  advisee from scrape, Import scrape) · Curricula · Reports` — matches the four
+  features from Issue #1 instead of a flat link list. Active page is highlighted;
+  narrow viewports collapse the nav behind a ☰ toggle.
+- **Dashboard quick actions**: one-click buttons to the most common next steps
+  (open roster, add advisee, import scrape, flags board, curricula, reports).
+- **Student page sub-nav**: a sticky quick-jump bar (Flags · Checklist · Grades ·
+  Notes · Attachments) plus a back-to-roster link, since the page is long.
+- No files removed by this pass — a repo-wide check found no unused tracked files
+  (`git ls-files` was reviewed; `saais/repo/md_doc.py` still backs the one-time v1
+  migration in `saais/migrate.py` and is kept).

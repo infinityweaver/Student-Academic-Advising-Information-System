@@ -109,17 +109,32 @@ your own.
 
 ## How to use the system
 
+### Navigation
+
+The top nav is grouped into four areas so every feature stays a click or two away:
+
+- **🏠 Dashboard** — the home page (status counts, INC countdown, stop-outs, statistics).
+- **👥 Students ▾** — a dropdown with Roster, Flags board, ＋ Add advisee, New advisee
+  (from scrape), and Import scrape.
+- **📚 Curricula** — first-class curriculum records.
+- **📊 Reports** — the flexible report generator.
+
+The current page is highlighted in the nav; on narrow screens the nav collapses
+behind a ☰ button. The student page additionally has a sticky quick-jump bar
+(Flags · Checklist · Grades · Notes · Attachments) since it is the longest page.
+
 ### The pages
 
 | Page | What it's for |
 |---|---|
-| **Home** | Status counts, ⏳ INC deadline countdown (1-year lapse rule), 🚪 stop-out list |
-| **Roster** | All advisees — sortable/filterable by status, curriculum, year level, GWA, flags |
+| **Dashboard** (Home) | Status counts, ⏳ INC deadline countdown (1-year lapse rule), 🚪 stop-out list, per-program statistics, recent graduates |
+| **Roster** (Students ▾) | All advisees — sortable/filterable by status, curriculum, year level, GWA, flags |
+| **Flags board** (Students ▾) | Every 🔴/🟡 item across advisees, grouped: INCs, retakes, delinquency, stop-outs |
 | **Curricula** | First-class curriculum records — add, import from xlsx, edit effective years, delete |
-| **Flags** | Every 🔴/🟡 item across advisees, grouped: INCs, retakes, delinquency, stop-outs |
-| **Student page** | Profile, flags, curriculum checklist, grade history by term, advising notes |
-| **Import scrape** | Drop/paste a fresh registrar JSON for an existing advisee |
-| **New advisee** | Scaffold the folder + `record.json` for a new advisee from their grade JSON |
+| **Reports** | Filter by status/curriculum/year level/GWA/flags/date range; on-screen table or CSV export |
+| **Student page** | Profile, flags, curriculum checklist, grade history by term, advising notes CRUD, attachments, AI chat |
+| **Import scrape** (Students ▾) | Drop/paste a fresh registrar JSON for an existing advisee |
+| **New advisee** (Students ▾) | Scaffold the folder + `record.json` for a new advisee, by hand or from their grade JSON |
 
 ### During an advising session
 
@@ -222,6 +237,27 @@ instead, precisely so PII can never end up in a public git history. See
 design decisions, and [docs/SAAIS-PLAN.md](docs/SAAIS-PLAN.md) for the original plan.
 
 ## Changelog
+
+### 2.0.0 — 2026-07-06
+
+- **v2 rewrite** (Issue #1): JSON records (`students/<status>/<Folder>/record.json`)
+  replace per-student Markdown as the source of truth, with a one-time migration from
+  the legacy `.md`/`.xlsx`/`raw/*.json` files; Markdown becomes an export-only format
+  (Roster → select students → *Export MD*). Curricula are now first-class editable
+  records (`data/curricula/<id>.json`) with an xlsx import path. Full Students CRUD
+  (add/edit/delete, checklist overrides + remarks, grade-entry deletion, file
+  attachments). Dashboard rebuilt with per-program statistics and a recent-graduates
+  list, alongside the existing INC countdown and stop-out list. New flexible Reports
+  page (filter by status/curriculum/year level/GWA/flags/date range, CSV export).
+  Advising notes are full CRUD (was append-only), plus an optional local AI advising
+  chat scoped to a single student's own records (disabled by default; enable `[ai]`
+  in `saais.toml`).
+- **UI/UX refactor** for intuitive, efficient access to every v2 feature: the top nav
+  is now grouped into *Dashboard · Students (Roster, Flags board, Add advisee, New
+  advisee from scrape, Import scrape) · Curricula · Reports*, with active-page
+  highlighting and a collapsible mobile menu; the Dashboard gained a quick-actions bar
+  to the most common tasks; the (long) student page gained a sticky quick-jump sub-nav
+  (Flags · Checklist · Grades · Notes · Attachments) and a back-to-roster link.
 
 ### 1.0.0 — 2026-07-04
 

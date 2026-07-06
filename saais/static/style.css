@@ -13,12 +13,48 @@ a { color: var(--accent-2); text-decoration: none; }
 a:hover { text-decoration: underline; }
 code { background: #eef1f4; padding: 0 .25em; border-radius: 3px; }
 
-.topbar { display: flex; align-items: center; gap: 1.2rem; background: var(--accent); color: #fff; padding: .55rem 1.2rem; flex-wrap: wrap; }
+.topbar { display: flex; align-items: center; gap: 1.2rem; background: var(--accent); color: #fff; padding: .55rem 1.2rem; flex-wrap: wrap; position: relative; }
 .topbar .brand { color: #fff; font-weight: 700; font-size: 1.05rem; }
-.topbar nav { display: flex; gap: .9rem; flex: 1; }
-.topbar nav a { color: #d9e8de; }
-.topbar nav a:hover { color: #fff; }
+.topbar nav { display: flex; gap: .3rem; flex: 1; align-items: center; }
+.topbar nav a { color: #d9e8de; padding: .3rem .55rem; border-radius: 5px; }
+.topbar nav a:hover { color: #fff; text-decoration: none; background: rgba(255,255,255,.1); }
+.topbar nav a.active { color: #fff; background: rgba(255,255,255,.18); font-weight: 600; }
 .topbar .term { font-size: .82rem; color: #cfe3d6; }
+.nav-toggle { display: none; background: transparent; border: 1px solid rgba(255,255,255,.4); color: #fff; font-size: 1.1rem; line-height: 1; padding: .2rem .55rem; border-radius: 5px; }
+.nav-toggle:hover { background: rgba(255,255,255,.12); }
+
+/* Students dropdown */
+.nav-drop { position: relative; }
+.nav-drop summary { list-style: none; cursor: pointer; color: #d9e8de; padding: .3rem .55rem; border-radius: 5px; }
+.nav-drop summary::-webkit-details-marker { display: none; }
+.nav-drop summary:hover { color: #fff; background: rgba(255,255,255,.1); }
+.nav-drop summary.active { color: #fff; background: rgba(255,255,255,.18); font-weight: 600; }
+.nav-drop .nav-drop-menu {
+  position: absolute; top: 100%; left: 0; margin-top: .3rem; min-width: 15rem;
+  background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.15); padding: .35rem; z-index: 20; display: flex;
+  flex-direction: column;
+}
+.nav-drop .nav-drop-menu a { color: var(--ink); padding: .45rem .6rem; border-radius: 5px; white-space: nowrap; }
+.nav-drop .nav-drop-menu a:hover { background: #eef2f0; text-decoration: none; }
+
+@media (max-width: 860px) {
+  .nav-toggle { display: inline-block; order: 1; }
+  .topbar .brand { order: 0; }
+  .topbar .term { order: 2; width: 100%; }
+  .topbar nav { order: 3; width: 100%; display: none; flex-direction: column; align-items: stretch; gap: .1rem; }
+  .topbar nav.open { display: flex; }
+  .topbar nav a { width: 100%; }
+  .nav-drop .nav-drop-menu { position: static; box-shadow: none; margin-top: 0; margin-left: .8rem; }
+}
+
+/* Quick-jump sub-nav (e.g. on the student page) */
+.subnav { display: flex; gap: .4rem; flex-wrap: wrap; margin: .2rem 0 1rem; position: sticky; top: 0; background: var(--bg); padding: .4rem 0; z-index: 5; }
+.subnav a { background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: .25rem .75rem; font-size: .85rem; color: var(--ink); }
+.subnav a:hover { background: #eef2f0; text-decoration: none; }
+
+.quick-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin: .8rem 0 1.2rem; }
+.quick-actions a button { width: 100%; }
 
 .flashes { max-width: 1080px; margin: .8rem auto 0; padding: 0 1rem; }
 .flash { background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px; padding: .5rem .8rem; margin-bottom: .4rem; }
