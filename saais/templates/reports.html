@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<h1>Reports</h1>
+
+<form class="filters" method="get">
+  <label>Status
+    <select name="status">
+      <option value="">all</option>
+      {% for s in ["active", "inactive", "graduated"] %}
+      <option value="{{ s }}" {{ "selected" if f_status == s }}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Curriculum
+    <select name="cur">
+      <option value="">all</option>
+      {% for key, label in cur_labels().items() %}
+      <option value="{{ key }}" {{ "selected" if f_cur == key }}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Year level
+    <select name="year">
+      <option value="">all</option>
+      {% for y in years %}<option value="{{ y }}" {{ "selected" if f_year == y }}>{{ y }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Flag
+    <select name="flag">
+      <option value="">any</option>
+      {% for f in ["STOPOUT", "DELINQ", "INC", "RETAKE"] %}
+      <option value="{{ f }}" {{ "selected" if f_flag == f }}>{{ flag_icon.get(f, "") }} {{ f }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>GWA min<br><input type="number" step="0.01" name="gwa_min" value="{{ f_gwa_min }}" style="width:5rem"></label>
+  <label>GWA max<br><input type="number" step="0.01" name="gwa_max" value="{{ f_gwa_max }}" style="width:5rem"></label>
+  <label>Entered from (AY)<br><input type="number" name="entered_from" value="{{ f_from }}" style="width:6rem" placeholder="2018"></label>
+  <label>Entered to (AY)<br><input type="number" name="entered_to" value="{{ f_to }}" style="width:6rem" placeholder="2025"></label>
+  <button>Apply</button>
+  <button type="submit" name="format" value="csv" class="secondary">⬇ Export CSV</button>
+</form>
+
+<p class="muted">{{ rows|length }} student(s) matched.</p>
+
+<table>
+  <tr><th>Student</th><th>ID</th><th>Program</th><th>Curriculum</th><th>Status</th>
+      <th>Year level</th><th>Units</th><th>GWA</th><th>Entered</th><th>Flags</th></tr>
+  {% for st in rows %}
+  <tr>
+    <td>{% if st.sid %}<a href="{{ url_for('student', sid=st.sid) }}">{{ st.name }}</a>{% else %}{{ st.name }}{% endif %}</td>
+    <td>{{ st.sid or "—" }}</td>
+    <td>{{ st.record.student.program }}</td>
+    {% if st.an %}
+    <td>{{ cur_labels().get(st.an.curkey, st.an.curkey) }}</td>
+    <td>{{ st.status_key }}</td>
+    <td>{{ st.an.year_level }}</td>
+    <td>{{ "%g"|format(st.an.units) }} / {{ "%g"|format(st.an.grad_units) }}</td>
+    <td>{{ "%.2f"|format(st.an.gwa) if st.an.gwa else "—" }}</td>
+    <td>{{ st.record.student.entered or "—" }}</td>
+    <td>{% for k, _ in st.an.flags %}{{ flag_icon.get(k, "") }}{% endfor %}</td>
+    {% else %}
+    <td class="muted">—</td>
+    <td>{{ st.status_key }}</td>
+    <td colspan="4" class="muted">no grade data</td>
+    <td>—</td>
+    {% endif %}
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}
