@@ -59,7 +59,11 @@ def ask_ai(store: Store, st, message, cfg, expected_hash=None):
     message = " ".join(message.split())
     if not message:
         raise ValueError("Empty message.")
-    history = [{"role": t["role"], "text": t["text"]} for t in st.record["chat"]]
+    # Last N turns only — keeps requests small and avoids context-limit
+    # failures as a transcript grows; read defensively in case a record was
+    # ever hand-edited/partially corrupted.
+    recent = st.record["chat"][-20:]
+    history = [{"role": t.get("role", "user"), "text": t.get("text", "")} for t in recent]
     records.add_chat_message(st.record, "user", message)
     try:
         reply = ai_chat.ask(cfg, st, history, message)

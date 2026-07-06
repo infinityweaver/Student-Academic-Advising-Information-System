@@ -10,6 +10,12 @@ log). No other network calls are made from this module.
 import json
 import urllib.error
 import urllib.request
+from urllib.parse import urlsplit
+
+#: Hostnames considered "this machine" — anything else is refused before any
+#: request is made, so a misconfigured `[ai].host` can never exfiltrate a
+#: student's record off-machine.
+_LOCAL_HOSTNAMES = {"127.0.0.1", "localhost", "::1", "[::1]"}
 
 SYSTEM_PROMPT = (
     "You are an academic advising assistant helping a human adviser think through "
@@ -47,6 +53,12 @@ def ask(cfg, st, history, message):
     host = str(ai_cfg.get("host") or "http://127.0.0.1:11434").rstrip("/")
     model = ai_cfg.get("model") or "qwen2.5:7b"
     timeout = float(ai_cfg.get("timeout") or 30)
+
+    hostname = (urlsplit(host).hostname or "").lower()
+    if hostname not in _LOCAL_HOSTNAMES:
+        raise AIError(
+            f"[ai].host must point to this machine (127.0.0.1/localhost), got {host!r}. "
+            "Refusing to send student data to a non-local address.")
 
     messages = [{"role": "system", "content": SYSTEM_PROMPT + "\n\n" + build_context(st)}]
     for turn in history:

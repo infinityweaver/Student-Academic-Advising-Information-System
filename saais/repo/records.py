@@ -96,6 +96,11 @@ def validate(rec):
     for key in ("notes", "attachments", "chat"):
         if not isinstance(rec.setdefault(key, []), list):
             raise RecordError(f"'{key}' must be a list.")
+    for i, turn in enumerate(rec["chat"]):
+        if not isinstance(turn, dict) or turn.get("role") not in ("user", "assistant"):
+            raise RecordError(f"chat[{i}] needs a role of 'user' or 'assistant'.")
+        turn["text"] = str(turn.get("text") or "")
+        turn.setdefault("when", "")
     for i, item in enumerate(rec["checklist"].values()):
         # status is None when only remarks are stored (no manual override)
         if item.get("status") is not None and item.get("status") not in CHECKLIST_STATUSES:
