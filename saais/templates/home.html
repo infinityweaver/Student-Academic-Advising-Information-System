@@ -38,6 +38,29 @@
 </ul>
 {% else %}<p class="muted">Everyone has records in the current term.</p>{% endif %}
 
+<h2>Statistics by program</h2>
+{% if programs %}
+<table>
+  <tr><th>Program</th><th>Active</th><th>Inactive</th><th>Graduated</th><th>Total</th></tr>
+  {% for prog, row in programs.items() %}
+  <tr>
+    <td>{{ prog }}</td><td>{{ row.active }}</td><td>{{ row.inactive }}</td><td>{{ row.graduated }}</td>
+    <td>{{ row.active + row.inactive + row.graduated }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}<p class="muted">No student records yet.</p>{% endif %}
+
+<h2>🎓 Graduated in the last 3 years</h2>
+{% if recent_grads %}
+<ul>
+  {% for st in recent_grads %}
+  <li><a href="{{ url_for('student', sid=st.sid) }}">{{ st.name }}</a>
+      <span class="muted">— {{ st.record.student.program }}, {{ st.record.student.graduated_year }}</span></li>
+  {% endfor %}
+</ul>
+{% else %}<p class="muted">No graduates recorded in this window.</p>{% endif %}
+
 <h2>Maintenance</h2>
 <div class="box">
   <form class="inline" method="post" action="{{ url_for('sync_roster') }}">

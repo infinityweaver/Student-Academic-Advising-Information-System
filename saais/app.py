@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """Flask routes for SAAIS. Local single-user app — binds to 127.0.0.1 only."""
+import csv
 import io
 import os
 import re
 from datetime import date, datetime
 
-from flask import (Flask, abort, flash, redirect, render_template, request,
+from flask import (Flask, Response, abort, flash, redirect, render_template, request,
                    send_file, send_from_directory, url_for)
 from markupsafe import Markup, escape
 
@@ -69,8 +70,28 @@ def create_app():
             counts[st.status[:1]] = counts.get(st.status[:1], 0) + 1
         stopouts = [st for st in students
                     if st.an and any(k == "STOPOUT" for k, _ in st.an["flags"])]
+
+        all_students = store.all_students()
+        programs = {}
+        for st in all_students:
+            if not st.record:
+                continue
+            prog = st.record["student"]["program"] or "—"
+            row = programs.setdefault(prog, {"active": 0, "inactive": 0, "graduated": 0})
+            if st.status_key in row:
+                row[st.status_key] += 1
+        programs = dict(sorted(programs.items()))
+
+        this_year = date.today().year
+        recent_grads = [st for st in all_students
+                        if st.status_key == "graduated"
+                        and st.record and st.record["student"].get("graduated_year")
+                        and st.record["student"]["graduated_year"] >= this_year - 3]
+        recent_grads.sort(key=lambda s: -(s.record["student"]["graduated_year"]))
+
         return render_template("home.html", students=students, counts=counts,
-                               incs=inc_board(), stopouts=stopouts)
+                               incs=inc_board(), stopouts=stopouts,
+                               programs=programs, recent_grads=recent_grads)
 
     @app.route("/roster")
     def roster():
@@ -107,6 +128,77 @@ def create_app():
             for kind, txt in st.an["flags"]:
                 groups.setdefault(kind, []).append((st, txt))
         return render_template("flags.html", groups=groups)
+
+    @app.route("/reports")
+    def reports():
+        f_status = request.args.get("status", "")
+        f_cur = request.args.get("cur", "")
+        f_year = request.args.get("year", "")
+        f_flag = request.args.get("flag", "")
+        f_gwa_min = request.args.get("gwa_min", "")
+        f_gwa_max = request.args.get("gwa_max", "")
+        f_from = request.args.get("entered_from", "")
+        f_to = request.args.get("entered_to", "")
+
+        def entered_year(st):
+            entered = st.record["student"].get("entered") if st.record else None
+            try:
+                return int(entered[:4]) if entered else None
+            except (TypeError, ValueError):
+                return None
+
+        def matches(st):
+            if not st.record:
+                return False
+            if f_status and st.status_key != f_status:
+                return False
+            if f_cur and (not st.an or st.an["curkey"] != f_cur):
+                return False
+            if f_year and (not st.an or st.an["year_level"] != f_year):
+                return False
+            if f_flag and (not st.an or not any(k == f_flag for k, _ in st.an["flags"])):
+                return False
+            if f_gwa_min:
+                if not st.an or not st.an["gwa"] or st.an["gwa"] < float(f_gwa_min):
+                    return False
+            if f_gwa_max:
+                if not st.an or not st.an["gwa"] or st.an["gwa"] > float(f_gwa_max):
+                    return False
+            ey = entered_year(st)
+            if f_from and (ey is None or ey < int(f_from)):
+                return False
+            if f_to and (ey is None or ey > int(f_to)):
+                return False
+            return True
+
+        rows = [st for st in store.all_students() if matches(st)]
+        rows.sort(key=lambda s: rules.strip_accents(s.name).upper())
+        years = sorted({st.an["year_level"] for st in store.all_students() if st.an})
+
+        if request.args.get("format") == "csv":
+            buf = io.StringIO()
+            w = csv.writer(buf)
+            w.writerow(["Name", "Student No.", "Program", "Curriculum", "Status",
+                       "Year level", "Units earned", "GWA", "Entered", "Flags"])
+            for st in rows:
+                w.writerow([
+                    st.name, st.sid or "", st.record["student"]["program"],
+                    curriculum.labels().get(st.an["curkey"], "") if st.an else "",
+                    st.status_key, st.an["year_level"] if st.an else "",
+                    f"{st.an['units']:g}" if st.an else "",
+                    f"{st.an['gwa']:.2f}" if st.an and st.an["gwa"] else "",
+                    st.record["student"].get("entered", ""),
+                    "; ".join(k for k, _ in st.an["flags"]) if st.an else "",
+                ])
+            resp = Response(buf.getvalue(), mimetype="text/csv")
+            resp.headers["Content-Disposition"] = (
+                f"attachment; filename=saais-report-{date.today().isoformat()}.csv")
+            return resp
+
+        return render_template("reports.html", rows=rows, years=years,
+                               f_status=f_status, f_cur=f_cur, f_year=f_year,
+                               f_flag=f_flag, f_gwa_min=f_gwa_min, f_gwa_max=f_gwa_max,
+                               f_from=f_from, f_to=f_to)
 
     @app.route("/student/<sid>")
     def student(sid):
