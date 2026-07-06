@@ -64,14 +64,14 @@ def create_app():
     # ------------------------------------------------------------- pages
     @app.route("/")
     def home():
-        students = store.students()
+        all_students = store.all_students()
+        students = [st for st in all_students if st.status_key == "active"]
         counts = {"🔴": 0, "🟡": 0, "🟢": 0, "⚪": 0}
         for st in students:
             counts[st.status[:1]] = counts.get(st.status[:1], 0) + 1
         stopouts = [st for st in students
                     if st.an and any(k == "STOPOUT" for k, _ in st.an["flags"])]
 
-        all_students = store.all_students()
         programs = {}
         for st in all_students:
             if not st.record:
@@ -140,6 +140,21 @@ def create_app():
         f_from = request.args.get("entered_from", "")
         f_to = request.args.get("entered_to", "")
 
+        def safe_float(s):
+            try:
+                return float(s) if s else None
+            except ValueError:
+                return None
+
+        def safe_int(s):
+            try:
+                return int(s) if s else None
+            except ValueError:
+                return None
+
+        gwa_min, gwa_max = safe_float(f_gwa_min), safe_float(f_gwa_max)
+        from_year, to_year = safe_int(f_from), safe_int(f_to)
+
         def entered_year(st):
             entered = st.record["student"].get("entered") if st.record else None
             try:
@@ -158,30 +173,37 @@ def create_app():
                 return False
             if f_flag and (not st.an or not any(k == f_flag for k, _ in st.an["flags"])):
                 return False
-            if f_gwa_min:
-                if not st.an or not st.an["gwa"] or st.an["gwa"] < float(f_gwa_min):
+            if gwa_min is not None:
+                if not st.an or not st.an["gwa"] or st.an["gwa"] < gwa_min:
                     return False
-            if f_gwa_max:
-                if not st.an or not st.an["gwa"] or st.an["gwa"] > float(f_gwa_max):
+            if gwa_max is not None:
+                if not st.an or not st.an["gwa"] or st.an["gwa"] > gwa_max:
                     return False
             ey = entered_year(st)
-            if f_from and (ey is None or ey < int(f_from)):
+            if from_year is not None and (ey is None or ey < from_year):
                 return False
-            if f_to and (ey is None or ey > int(f_to)):
+            if to_year is not None and (ey is None or ey > to_year):
                 return False
             return True
 
-        rows = [st for st in store.all_students() if matches(st)]
-        rows.sort(key=lambda s: rules.strip_accents(s.name).upper())
-        years = sorted({st.an["year_level"] for st in store.all_students() if st.an})
+        all_students = store.all_students()  # already name-sorted
+        rows = [st for st in all_students if matches(st)]
+        years = sorted({st.an["year_level"] for st in all_students if st.an})
 
         if request.args.get("format") == "csv":
+            def csv_safe(v):
+                """Prefix a leading =/+/-/@ with a tab so spreadsheet apps
+                (Excel, Sheets, LibreOffice) never interpret a cell as a
+                formula (CSV injection)."""
+                s = str(v)
+                return "\t" + s if s and s[0] in "=+-@" else s
+
             buf = io.StringIO()
             w = csv.writer(buf)
             w.writerow(["Name", "Student No.", "Program", "Curriculum", "Status",
                        "Year level", "Units earned", "GWA", "Entered", "Flags"])
             for st in rows:
-                w.writerow([
+                w.writerow([csv_safe(v) for v in (
                     st.name, st.sid or "", st.record["student"]["program"],
                     curriculum.labels().get(st.an["curkey"], "") if st.an else "",
                     st.status_key, st.an["year_level"] if st.an else "",
@@ -189,7 +211,7 @@ def create_app():
                     f"{st.an['gwa']:.2f}" if st.an and st.an["gwa"] else "",
                     st.record["student"].get("entered", ""),
                     "; ".join(k for k, _ in st.an["flags"]) if st.an else "",
-                ])
+                )])
             resp = Response(buf.getvalue(), mimetype="text/csv")
             resp.headers["Content-Disposition"] = (
                 f"attachment; filename=saais-report-{date.today().isoformat()}.csv")
