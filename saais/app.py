@@ -261,7 +261,8 @@ def create_app():
         try:
             if not f or not f.filename:
                 raise ValueError("Choose a file to attach.")
-            service.add_attachment(store, st, f.filename, f.mimetype, f)
+            service.add_attachment(store, st, f.filename, f.mimetype, f,
+                                  expected_hash=request.form.get("rec_hash"))
             flash(f"Attached {f.filename}.")
         except (service.Conflict, ValueError) as e:
             flash(f"⚠ {e}")
@@ -270,7 +271,13 @@ def create_app():
     @app.get("/student/<sid>/attachments/<path:name>")
     def get_attachment(sid, name):
         st = get_student_or_404(sid)
-        return send_from_directory(st.folder_path, name, as_attachment=False)
+        # Only serve files that are actually recorded as attachments — not
+        # record.json or any other file in the student's folder — and force
+        # a download rather than serving inline, since an uploaded HTML/SVG
+        # file rendered inline could run as active content under our origin.
+        if name not in {a["name"] for a in st.record["attachments"]}:
+            abort(404)
+        return send_from_directory(st.folder_path, name, as_attachment=True)
 
     @app.post("/student/<sid>/attachments/open-folder")
     def open_attachments_folder(sid):

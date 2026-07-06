@@ -68,7 +68,7 @@
 {% endfor %}
 {% if st.an.checklist %}</table>{% endif %}
 <p class="no-print"><button>Save checklist</button>
-  <span class="muted" style="font-size:.82rem">Only rows set away from "— computed —" are stored as manual overrides; everything else stays derived from grades.</span></p>
+  <span class="muted" style="font-size:.82rem">Rows set away from "— computed —" store a manual status override; setting a row back to "— computed —" clears its override (any remarks on that row are kept). Everything else stays derived from grades.</span></p>
 </form>
 
 <h3>Checklist remarks</h3>
@@ -162,6 +162,7 @@
 <h2 id="attachments">Attachments</h2>
 <div class="box no-print">
   <form method="post" action="{{ url_for('add_attachment', sid=st.sid) }}" enctype="multipart/form-data">
+    <input type="hidden" name="rec_hash" value="{{ st.rec_hash }}">
     <p style="display:flex; gap:.6rem; align-items:center; flex-wrap:wrap;">
       <input type="file" name="file" required>
       <button>Attach file</button>

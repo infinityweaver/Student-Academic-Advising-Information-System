@@ -248,16 +248,18 @@ def delete_advisee(store: Store, st):
 
 # ------------------------------------------------------------------ checklist
 def save_checklist(store: Store, st, statuses, expected_hash=None):
-    """statuses: {course_code: status}. Bulk-applies and writes once."""
+    """statuses: {course_code: status}. Bulk-applies and writes once. A blank
+    status clears a previously-saved override back to "computed" (remarks,
+    if any, are untouched) rather than being skipped."""
     _check_hash(st, expected_hash)
     changed = 0
     for code, status in statuses.items():
-        if not status:
-            continue
+        status = status or None
         before = st.record["checklist"].get(code, {}).get("status")
+        if status == before:
+            continue
         records.set_checklist_status(st.record, code, status)
-        if status != before:
-            changed += 1
+        changed += 1
     if changed:
         _write(store, st)
     return changed
@@ -282,8 +284,9 @@ def delete_grade_entry(store: Store, st, ay, sem, code, expected_hash=None):
 
 
 # ------------------------------------------------------------------ attachments
-def add_attachment(store: Store, st, filename, mimetype, stream):
+def add_attachment(store: Store, st, filename, mimetype, stream, expected_hash=None):
     from werkzeug.utils import secure_filename
+    _check_hash(st, expected_hash)
     name = secure_filename(filename)
     if not name:
         raise ValueError("Choose a file to attach.")

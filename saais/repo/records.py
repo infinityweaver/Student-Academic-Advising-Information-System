@@ -96,8 +96,9 @@ def validate(rec):
         if not isinstance(rec.setdefault(key, []), list):
             raise RecordError(f"'{key}' must be a list.")
     for i, item in enumerate(rec["checklist"].values()):
-        if item.get("status") not in CHECKLIST_STATUSES:
-            raise RecordError(f"checklist entries need a status in {CHECKLIST_STATUSES}.")
+        # status is None when only remarks are stored (no manual override)
+        if item.get("status") is not None and item.get("status") not in CHECKLIST_STATUSES:
+            raise RecordError(f"checklist entries need a status in {CHECKLIST_STATUSES} or null.")
     return rec
 
 
@@ -180,20 +181,30 @@ def set_lifecycle(rec, status, reason=None, graduated_year=None):
 
 
 def set_checklist_status(rec, code, status):
-    """Manual override of a checklist row's status; anything not listed here
-    is derived from grades. Preserves any existing remarks."""
-    if status not in CHECKLIST_STATUSES:
+    """Manual override of a checklist row's status; `status` of None/""
+    clears the override (falls back to computed) without touching remarks.
+    Anything not listed here is derived from grades."""
+    status = status or None
+    if status is not None and status not in CHECKLIST_STATUSES:
         raise RecordError(f"checklist status must be one of {CHECKLIST_STATUSES}.")
-    item = rec["checklist"].setdefault(code, {"status": status, "remarks": []})
+    item = rec["checklist"].get(code)
+    if item is None:
+        if status is None:
+            return  # nothing to clear
+        item = rec["checklist"][code] = {"status": None, "remarks": []}
     item["status"] = status
     item.setdefault("remarks", [])
+    if item["status"] is None and not item["remarks"]:
+        del rec["checklist"][code]  # fully cleared, don't keep an empty entry
 
 
 def add_checklist_remark(rec, code, text):
+    """Remarks are independent of the manual status override — adding one
+    does not itself set/replace record["checklist"][code]["status"]."""
     text = " ".join(text.split())
     if not text:
         raise RecordError("Empty remark.")
-    item = rec["checklist"].setdefault(code, {"status": "pending", "remarks": []})
+    item = rec["checklist"].setdefault(code, {"status": None, "remarks": []})
     item.setdefault("remarks", []).append(text)
 
 
@@ -202,6 +213,8 @@ def delete_checklist_remark(rec, code, idx):
     if item is None or not (0 <= idx < len(item.get("remarks", []))):
         raise RecordError(f"No remark #{idx} for {code}.")
     del item["remarks"][idx]
+    if item["status"] is None and not item["remarks"]:
+        del rec["checklist"][code]  # fully cleared, don't keep an empty entry
 
 
 def add_attachment(rec, name, mimetype):
