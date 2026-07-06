@@ -78,9 +78,10 @@ All v2 features (Dashboard, Curriculum, Students, Reports, advising notes CRUD,
 AI chat) had shipped, but the top nav was still one flat list of 8 links and the
 student page — the busiest page, with flags, checklist, grade history, notes,
 attachments, and chat all on one URL — had no way to jump between sections. This
-pass only touches templates/CSS (`saais/templates/base.html`,
+pass changes only templates/CSS and documentation (`saais/templates/base.html`,
 `saais/templates/home.html`, `saais/templates/student.html`,
-`saais/static/style.css`); no routes, schemas, or domain logic changed.
+`saais/static/style.css`, this file, and `README.md`); no routes, schemas, or
+domain logic changed.
 
 - **Grouped nav**: `Dashboard · Students ▾ (Roster, Flags board, Add advisee, New
   advisee from scrape, Import scrape) · Curricula · Reports` — matches the four
@@ -93,3 +94,13 @@ pass only touches templates/CSS (`saais/templates/base.html`,
 - No files removed by this pass — a repo-wide check found no unused tracked files
   (`git ls-files` was reviewed; `saais/repo/md_doc.py` still backs the one-time v1
   migration in `saais/migrate.py` and is kept).
+
+Tracked in Issue #1, shipped in PR #7. Copilot's automated review on PR #7 flagged
+two issues, both fixed in the same PR before merge:
+1. `saais/templates/base.html` — the `navlink` macro and the Students dropdown
+   `<summary>` used `{{ 'active' if <cond> }}`, an inline Jinja conditional
+   expression with no `else`, which raises `TemplateSyntaxError` in strict Jinja
+   configurations. Fixed to `{{ 'active' if <cond> else '' }}` in both spots.
+2. This file — the note said the pass "only touches templates/CSS", which was
+   inaccurate since it also updated this file and `README.md`; reworded to say
+   templates/CSS *and documentation*.

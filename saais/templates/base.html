@@ -9,7 +9,7 @@
 </head>
 <body hx-boost="true">
 {% macro navlink(path, endpoint, label) %}
-<a href="{{ url_for(endpoint) }}" class="{{ 'active' if request.path == path or request.path.startswith(path + '/') }}">{{ label }}</a>
+<a href="{{ url_for(endpoint) }}" class="{{ 'active' if (request.path == path or request.path.startswith(path + '/')) else '' }}">{{ label }}</a>
 {% endmacro %}
 <header class="topbar no-print">
   <a class="brand" href="{{ url_for('home') }}">🎓 SAAIS</a>
@@ -18,7 +18,7 @@
   <nav id="mainnav">
     {{ navlink('/', 'home', '🏠 Dashboard') }}
     <details class="nav-drop">
-      <summary class="{{ 'active' if request.path.startswith('/student') or request.path.startswith('/roster') or request.path.startswith('/flags') or request.path.startswith('/import') or request.path.startswith('/intake') }}">👥 Students ▾</summary>
+      <summary class="{{ 'active' if (request.path.startswith('/student') or request.path.startswith('/roster') or request.path.startswith('/flags') or request.path.startswith('/import') or request.path.startswith('/intake')) else '' }}">👥 Students ▾</summary>
       <div class="nav-drop-menu">
         <a href="{{ url_for('roster') }}">📋 Roster (all advisees)</a>
         <a href="{{ url_for('flags_board') }}">🚩 Flags board</a>

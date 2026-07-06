@@ -240,7 +240,12 @@ design decisions, and [docs/SAAIS-PLAN.md](docs/SAAIS-PLAN.md) for the original 
 
 ### 2.0.0 — 2026-07-06
 
-- **v2 rewrite** (Issue #1): JSON records (`students/<status>/<Folder>/record.json`)
+- **v2 rewrite** (Issue [#1](https://github.com/infinityweaver/Student-Academic-Advising-Information-System/issues/1),
+  PRs [#2](https://github.com/infinityweaver/Student-Academic-Advising-Information-System/pull/2),
+  [#4](https://github.com/infinityweaver/Student-Academic-Advising-Information-System/pull/4),
+  [#5](https://github.com/infinityweaver/Student-Academic-Advising-Information-System/pull/5),
+  [#6](https://github.com/infinityweaver/Student-Academic-Advising-Information-System/pull/6)):
+  JSON records (`students/<status>/<Folder>/record.json`)
   replace per-student Markdown as the source of truth, with a one-time migration from
   the legacy `.md`/`.xlsx`/`raw/*.json` files; Markdown becomes an export-only format
   (Roster → select students → *Export MD*). Curricula are now first-class editable
@@ -252,12 +257,17 @@ design decisions, and [docs/SAAIS-PLAN.md](docs/SAAIS-PLAN.md) for the original 
   Advising notes are full CRUD (was append-only), plus an optional local AI advising
   chat scoped to a single student's own records (disabled by default; enable `[ai]`
   in `saais.toml`).
-- **UI/UX refactor** for intuitive, efficient access to every v2 feature: the top nav
+- **UI/UX refactor** (Issue [#1](https://github.com/infinityweaver/Student-Academic-Advising-Information-System/issues/1),
+  PR [#7](https://github.com/infinityweaver/Student-Academic-Advising-Information-System/pull/7))
+  for intuitive, efficient access to every v2 feature: the top nav
   is now grouped into *Dashboard · Students (Roster, Flags board, Add advisee, New
   advisee from scrape, Import scrape) · Curricula · Reports*, with active-page
   highlighting and a collapsible mobile menu; the Dashboard gained a quick-actions bar
   to the most common tasks; the (long) student page gained a sticky quick-jump sub-nav
   (Flags · Checklist · Grades · Notes · Attachments) and a back-to-roster link.
+  Addressed Copilot review feedback on PR #7: two nav template expressions were
+  missing an explicit `else` branch (risked a `TemplateSyntaxError`), and an
+  implementation-notes sentence understated the docs-only files it touched.
 
 ### 1.0.0 — 2026-07-04
 
